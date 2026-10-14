@@ -264,6 +264,11 @@ html.theme-blue.dark {
   background-image: linear-gradient(180deg, var(--novel-hero-wash), transparent 72%);
 }
 
+/* 首页只有一句问候、没有配图时，让它居中，别贴左边 */
+.VPHome .VPHero:not(.has-image) .main {
+  text-align: center;
+}
+
 /* 主按钮：一点投影，悬停微微上浮 */
 .VPButton.brand {
   box-shadow: 0 8px 20px rgba(120, 82, 24, 0.18);

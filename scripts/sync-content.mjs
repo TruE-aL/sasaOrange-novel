@@ -90,8 +90,12 @@ log(`书架：${novels.length} 部作品`)
 
 /** 书架首页 */
 function homePage(novels, site) {
-  // 不放 hero：首页只有分组书架，保持干净（站点名仍显示在顶栏和浏览器标签上）
-  const lines = ['---', 'layout: home', '---', '']
+  // 首页只在 site.json 里写了 greeting 时放一句大字问候，否则直接开始分组书架
+  const lines = ['---', 'layout: home']
+  if (site.greeting) {
+    lines.push('hero:', `  name: ${yaml(site.greeting)}`)
+  }
+  lines.push('---', '')
 
   // 按 site.json 里的 sections 分组，每组一段标题 + 卡片
   const groups = site.sections

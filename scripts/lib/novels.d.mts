@@ -33,6 +33,7 @@ export type Section = { id: string; title: string; description?: string }
 export type Site = {
   title: string
   author: string
+  greeting?: string
   tagline: string
   footer?: { message?: string; copyright?: string }
   sections: Section[]
