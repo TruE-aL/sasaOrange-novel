@@ -1,5 +1,6 @@
 import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
+import ReaderSettings from './ReaderSettings'
 import SchemeSwitch from './SchemeSwitch'
 import './theme.css'
 
@@ -9,8 +10,8 @@ export default {
   extends: DefaultTheme,
   Layout() {
     return h(DefaultTheme.Layout, null, {
-      'nav-bar-content-after': () => h(SchemeSwitch),
-      'nav-screen-content-after': () => h(SchemeSwitch, { withLabel: true })
+      'nav-bar-content-after': () => [h(SchemeSwitch), h(ReaderSettings)],
+      'nav-screen-content-after': () => [h(SchemeSwitch, { withLabel: true }), h(ReaderSettings, { withLabel: true })]
     })
   }
 }

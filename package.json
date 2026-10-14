@@ -7,6 +7,7 @@
     "docs:dev": "node scripts/dev.mjs",
     "docs:build": "npm run docs:sync && vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "docs:deploy": "npm run docs:build && npx wrangler pages deploy"
+    "docs:deploy": "npm run docs:build && npx wrangler pages deploy",
+    "fonts:build": "node scripts/build-font.mjs"
   }
 }

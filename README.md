@@ -35,6 +35,7 @@ docs/
   public/
     favicon.png                 站点图标 64×64（由 site.json 的 icon 生成，已入库）
     apple-touch-icon.png        iOS 加到主屏用 180×180（同上）
+    fonts/noto-serif-sc-subset.woff2  阅读用宋体子集 408KB（已入库）
     novels/<slug>/cover.jpg     封面压缩产物（生成物）
   .vitepress/                    站点配置与主题
 ```
@@ -156,15 +157,45 @@ VitePress 会把这些图片打包进站点。
 
 ## 阅读配色
 
-站里有两套配色，顶栏右侧的两个小圆点可以切换（手机上展开右上角菜单，在菜单最下方），
+站里有三套配色，顶栏右侧的小圆点可以切换（手机上展开右上角菜单，在菜单最下方），
 选择记在浏览器的 localStorage 里，每台设备各记各的。
 
 - **暖黄（默认）**：米黄纸感底色 + 琥珀色强调，长时间阅读不刺眼
+- **淡绿**：米绿底 + 松绿强调
 - **淡蓝**：与作品许可页同一套蓝
 
 色值和明暗模式都在 `docs/.vitepress/theme/theme.css` 里：
-`:root` / `.dark` 是暖黄，`html.theme-blue` / `html.theme-blue.dark` 是淡蓝。
-想换默认色系，改 `docs/.vitepress/config.mts` 里 `head` 那段防闪烁脚本即可。
+`:root` / `.dark` 是暖黄，`html.theme-green(-.dark)` 是淡绿，`html.theme-blue(-.dark)` 是淡蓝。
+想再加一套：在 `theme.css` 里补一段 `html.theme-xxx` 变量，再去
+`docs/.vitepress/theme/SchemeSwitch.ts` 的 `SCHEMES` 里加一项，
+最后把新配色名字加进 `config.mts` 首屏脚本的白名单。
+
+## 阅读设置（字号 / 行距 / 字体）
+
+章节页顶栏右侧有个 **Aa** 按钮，点开可以自助调整：
+
+- **字号** 14–24px
+- **行距** 1.5–2.6
+- **字体** 黑体（系统默认）/ 宋体（下面那节的思源宋体子集）
+
+只在正文页显示（其它页面改了也看不出效果），选择记在 localStorage 里，
+首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
+`docs/.vitepress/theme/ReaderSettings.ts` 的 `DEFAULTS` 里。
+
+## 阅读字体
+
+「宋体」用的是自托管的思源宋体（Noto Serif CJK SC）子集：
+`docs/public/fonts/noto-serif-sc-subset.woff2`，只包含作品实际用到的两千多个字，
+**408KB**，而且只有选了宋体的读者才会下载它（没选的人完全不加载）。
+
+```bash
+npm run fonts:build     # 重新生成子集（新章节出现生僻字时跑一次）
+```
+
+这个脚本从系统字体 `NotoSerifCJK-Regular.ttc` 里取字（可用环境变量
+`NOTOSERIF_PATH` 指定别的路径），需要 Python 的 fontTools 与 brotli：
+`pip install fonttools brotli`。没覆盖到的字浏览器会自动回退到系统衬线字体，
+不会出现豆腐块。字体许可是 OFL 1.1，声明见 `docs/public/fonts/LICENSE.txt`。
 
 ## 字数与章数
 

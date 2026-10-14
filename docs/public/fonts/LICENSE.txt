@@ -1,0 +1,16 @@
+本目录下的 noto-serif-sc-subset.woff2 是思源宋体（Noto Serif CJK SC）的子集，
+由 scripts/build-font.mjs 从系统字体 NotoSerifCJK-Regular.ttc 生成，
+只包含本作品正文与实际用到的字符，字体本身未做任何修改。
+
+字体名称：Noto Serif CJK SC（思源宋体）
+版权：© 2017-2023 Adobe (http://www.adobe.com/)
+来源：https://fonts.google.com/noto
+许可：SIL Open Font License, Version 1.1
+
+This Font Software is licensed under the SIL Open Font License, Version 1.1.
+This Font Software is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied. See the SIL Open Font
+License for the specific language, permissions and limitations governing your
+use of this Font Software.
+
+许可全文：https://scripts.sil.org/OFL

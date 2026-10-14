@@ -101,15 +101,24 @@ export default defineConfig({
     }
   },
 
-  // 配色：默认暖黄（护眼），读者选过淡绿/淡蓝才加对应 class，
-  // 这段脚本在首屏渲染前执行，切换色系时不会闪一下
+  // 首屏脚本：在页面渲染前把读者选过的配色和阅读设置（字号/行距/字体）写好，
+  // 这样刷新时不会先闪一下默认样式。没选过就用默认值。
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
     ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
     [
       'script',
       {},
-      "try{var s=localStorage.getItem('novel-color-scheme');if(s==='green'||s==='blue')document.documentElement.classList.add('theme-'+s)}catch(e){}"
+      [
+        'try{',
+        "var d=document.documentElement,s=localStorage.getItem('novel-color-scheme');",
+        "if(s==='green'||s==='blue')d.classList.add('theme-'+s);",
+        "var r=JSON.parse(localStorage.getItem('novel-reader-settings')||'null');",
+        "if(r){if(r.size)d.style.setProperty('--novel-reader-size',r.size+'px');",
+        "if(r.leading)d.style.setProperty('--novel-reader-leading',String(r.leading));",
+        "if(r.font==='serif')d.classList.add('reader-serif')}",
+        '}catch(e){}'
+      ].join('')
     ]
   ],
 
