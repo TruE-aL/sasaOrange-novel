@@ -232,6 +232,11 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 访问不存在的地址时的 404 文案也是中文的，写在 `docs/.vitepress/config.mts` 的
 `themeConfig.notFound` 里（`title` / `quote` / `linkText`）。
 
+切页时顶部还会出现一条更细（2px）的加载条，见 `theme/NavProgress.ts`——实现思路
+借自 sakurairo 用的 `vitepress-plugin-nprogress`，但没引依赖、自己写了 30 行：
+跳转开始后**延迟 120ms** 才出现（静态站通常几十毫秒就读完了，这样不会闪一下），
+结束时补到 100% 再淡出。不想要就把 `theme/index.ts` 里的 `installNavProgress(router)` 删掉。
+
 - 只记**正文页**：书架首页、作品许可页这些不记
 - 点「上一章 / 下一章」进入的新章节**不恢复**，从开头读（那种情况读者通常想看新内容）
 - 带 `#锚点` 的链接不恢复，交给 VitePress 自己定位
