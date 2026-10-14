@@ -435,6 +435,18 @@ html.theme-blue.dark {
 /* 书架卡片（首页按分组排出的一张张书卡）。
    卡片在 .VPHomeContent.vp-doc 里，默认的 `.vp-doc a` 会给链接加下划线，
    所以这里的选择器都带上 .vp-doc 前缀提高优先级。 */
+/* 首页的分组标题不要那条横线（VitePress 默认给 h2 加了 1px 上边框） */
+.VPHomeContent.vp-doc h2 {
+  margin: 2.2em 0 0.9em;
+  padding-top: 0;
+  border-top: none;
+}
+
+/* 横线去掉后，标题里的 # 锚点要跟着回到文字顶部 */
+.VPHomeContent.vp-doc h2 .header-anchor {
+  top: 0;
+}
+
 .vp-doc .shelf-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
