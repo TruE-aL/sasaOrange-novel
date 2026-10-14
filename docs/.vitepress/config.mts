@@ -5,10 +5,11 @@ import { loadNovels, type Chapter } from '../../scripts/lib/novels.mjs'
 
 const configDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url))
 
-// 直接读「正文」，不经过任何中间产物：
+// 正文就直接放在 docs/novels/<作品名>/ 里，配置直接读它，不经过任何中间产物：
 // 目录和「上一章 / 下一章」都由同一份数据生成，不存在两边不同步的可能。
-const contentDir = path.resolve(configDir, '../../正文')
-const { site, novels } = loadNovels(contentDir)
+const contentDir = path.resolve(configDir, '../novels')
+const siteFile = path.resolve(configDir, '../site.json')
+const { site, novels } = loadNovels(contentDir, { siteFile })
 
 if (novels.length === 0) {
   console.warn(`[vitepress] 在 ${contentDir} 里没有读到作品文件夹，导航会是空的。`)
@@ -57,14 +58,48 @@ const nav = [
   ...(novels.length <= 5 ? novels.map((novel) => ({ text: novel.title, link: novel.home })) : [])
 ]
 
+/**
+ * 作品文件夹名可以随你取（中文也行），网址统一用 novel.json 里的 slug。
+ * 两者不一致时，用 rewrites 把「文件夹路径」映射成「slug 路径」，
+ * 同时把 00- 开头的许可页固定成 <slug>/license。
+ */
+const rewrites: Record<string, string> = {}
+for (const novel of novels) {
+  if (novel.folder === novel.slug) {
+    continue
+  }
+  for (const chapter of novel.chapters) {
+    const from = `novels/${novel.folder}/${chapter.file}`
+    rewrites[from] = `novels/${novel.slug}/${chapter.file}`
+  }
+  if (novel.licenseFile) {
+    rewrites[`novels/${novel.folder}/${novel.licenseFile}`] = `novels/${novel.slug}/license.md`
+  }
+  rewrites[`novels/${novel.folder}/index.md`] = `novels/${novel.slug}/index.md`
+}
+
+// 章节页的 URL（用 slug 的那份），用来判断哪些页面该套小说排版
+const chapterPages = new Set(
+  novels.flatMap((novel) => novel.chapters.map((chapter) => `novels/${novel.slug}/${chapter.file}`))
+)
+
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   lang: 'zh-CN',
   title: site.title,
   description: site.tagline,
 
-  // 教程自带的示例页面从站点里排除（文件本身保留，随时可以再启用）
-  srcExclude: ['markdown-examples.md', 'api-examples.md', 'test.md'],
+  rewrites,
+
+  // 教程自带的示例页面、以及 _模板 这类下划线开头的文件夹都不进站点
+  srcExclude: ['markdown-examples.md', 'api-examples.md', 'test.md', 'novels/_*/**'],
+
+  // 章节页自动加上 novel-chapter 类名，主题据此套中文小说排版（首行缩进、行高等）
+  transformPageData(pageData) {
+    if (chapterPages.has(pageData.relativePath)) {
+      pageData.frontmatter.pageClass = pageData.frontmatter.pageClass || 'novel-chapter'
+    }
+  },
 
   // 配色：默认暖黄（护眼），读者选过淡蓝才加 theme-blue，
   // 这段脚本在首屏渲染前执行，切换色系时不会闪一下

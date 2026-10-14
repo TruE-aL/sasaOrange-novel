@@ -127,12 +127,13 @@ function countWords(raw) {
  * 读取「正文」目录下的全部作品。
  * 一个子文件夹 = 一部作品；下划线或点开头的文件夹会被跳过（例如 _模板）。
  */
-export function loadNovels(contentDir) {
+export function loadNovels(contentDir, options = {}) {
+  const siteFile = options.siteFile || path.join(contentDir, 'site.json')
   const site = {
     title: '小说集',
     author: '',
     tagline: '',
-    ...readJson(path.join(contentDir, 'site.json'), {})
+    ...readJson(siteFile, {})
   }
 
   const folders = fs.existsSync(contentDir)
@@ -155,7 +156,14 @@ export function loadNovels(contentDir) {
 
     const files = fs
       .readdirSync(sourceDir)
-      .filter((file) => file.endsWith('.md') && !file.startsWith('.') && !file.startsWith('_'))
+      .filter(
+        (file) =>
+          file.endsWith('.md') &&
+          // index.md 是同步脚本生成的作品首页，不算正文
+          file !== 'index.md' &&
+          !file.startsWith('.') &&
+          !file.startsWith('_')
+      )
       .sort(naturalSort)
 
     const licenseFile = files.find((file) => prefixOf(file) === '00') || ''

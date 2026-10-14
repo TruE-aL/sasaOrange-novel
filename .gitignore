@@ -5,9 +5,9 @@ node_modules/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 
-# 由「正文」同步生成的站点内容（源文件在 正文/）
+# 由 scripts/sync-content.mjs 生成的书架与作品首页（正文本身在 docs/novels/ 里，正常入库）
 docs/index.md
-docs/novels/
+docs/novels/*/index.md
 docs/public/novels/
 
 # Cloudflare wrangler 的本地缓存
@@ -29,3 +29,5 @@ Thumbs.db
 # Crowbook 生成物（按需保留）
 *.epub
 *.pdf
+# 但作品目录里的原始文件要入库（例如作为存档的原版 PDF）
+!docs/novels/**/*.pdf

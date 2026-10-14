@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 开发服务器：先同步一次「正文」，然后盯着「正文」的变化自动重新同步，
+ * 开发服务器：先同步一次，然后盯着 docs/novels 的变化自动重新同步，
  * 最后把 vitepress dev 跑起来。改完稿不用手动重启。
  *
  * 另外：增删章节（页面的增减）会让 VitePress 的本地搜索索引出错并使 dev 进程退出，
@@ -15,7 +15,8 @@ import { fileURLToPath } from 'node:url'
 import { loadNovels } from './lib/novels.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
-const contentDir = path.join(root, '正文')
+const contentDir = path.join(root, 'docs/novels')
+const siteFile = path.join(root, 'docs/site.json')
 const syncScript = path.join(root, 'scripts/sync-content.mjs')
 const vitepressBin = path.join(root, 'node_modules/vitepress/bin/vitepress.js')
 
@@ -23,7 +24,7 @@ const log = (...args) => console.log('[dev]', ...args)
 
 /** 页面的「结构指纹」：有哪些作品、每部作品有哪些章节 */
 function structureSignature() {
-  const { novels } = loadNovels(contentDir)
+  const { novels } = loadNovels(contentDir, { siteFile })
   return novels.map((novel) => `${novel.slug}:${novel.chapters.map((c) => c.file).join(',')}`).join('|')
 }
 
@@ -71,6 +72,8 @@ if (fs.existsSync(contentDir)) {
   try {
     fs.watch(contentDir, { recursive: true }, (event, filename) => {
       if (!filename || /(^|[\\/])[.~]/.test(filename)) return
+      // index.md 是脚本自己生成的作品首页，别因为写它就再触发一次同步
+      if (path.basename(filename) === 'index.md') return
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         log(`「正文/${filename}」有改动，重新同步`)
