@@ -1,19 +1,19 @@
 /**
  * 《持续存在》阅读站主题
  *
- * 两套配色，读者可以随时切换：
- *   暖黄（默认，护眼）—— 直接写在 :root / .dark 里
- *   淡蓝            —— 用 html.theme-blue / html.theme-blue.dark 覆盖
+ * 三套配色，读者可以随时切换：
+ *   暖黄（默认，护眼）—— 直接写在 :root / .dark 里，不加任何 class
+ *   淡橙红            —— html.theme-orange / html.theme-orange.dark
+ *   淡蓝              —— html.theme-blue / html.theme-blue.dark
  *
  * 切换按钮在顶栏（手机在菜单展开后的底部），选择记在 localStorage: novel-color-scheme。
- * 默认走暖黄，所以没有 theme-blue 这个 class 时就是暖色。
+ * 默认走暖黄，所以没有 theme-* 这些 class 时就是暖色。
  *
- * 1. 暖黄色系（默认）
- * 2. 淡蓝色系（可切换）
- * 3. 配色切换按钮
- * 4. 首页
- * 5. 导航与目录
- * 6. 小说正文排版
+ * 0. 阅读用中文字体          5. 首页
+ * 1. 暖黄色系（默认）        6. 导航与目录
+ * 2. 淡蓝色系（可切换）      7. 小说章节页排版
+ * 3. 淡橙红色系（可切换）    8. 切页入场动画
+ * 4. 配色切换按钮            9. 作品首页
  */
 
 /* ============================================================
@@ -235,91 +235,92 @@ html.theme-blue.dark {
 }
 
 /* ============================================================
-   3. 淡绿色系（可切换）
-   淡绿纸感底色 + 松绿强调
+   3. 淡橙红色系（可切换）
+   与「orange」呼应：几乎中性的暖白底 + 橙红强调，
+   底色只在色相上偏暖、不铺色，保证长时间阅读不刺眼。
    ============================================================ */
 
-html.theme-green {
-  --vp-c-bg: #f5faf6;
-  --vp-c-bg-alt: #e9f4ec;
-  --vp-c-bg-soft: #e9f4ec;
+html.theme-orange {
+  --vp-c-bg: #fff8f5;
+  --vp-c-bg-alt: #fdeee7;
+  --vp-c-bg-soft: #fdeee7;
   --vp-c-bg-elv: #ffffff;
 
-  --vp-c-border: #d3e7da;
-  --vp-c-divider: #d3e7da;
-  --vp-c-gutter: #eef6f0;
+  --vp-c-border: #f4d8cd;
+  --vp-c-divider: #f4d8cd;
+  --vp-c-gutter: #fbeae3;
 
-  --vp-c-text-1: #26382c;
-  --vp-c-text-2: #4c6b56;
-  --vp-c-text-3: #5b7a64;
+  --vp-c-text-1: #3a2a26;
+  --vp-c-text-2: #6d5049;
+  --vp-c-text-3: #7d5f57;
 
-  --vp-c-brand-1: #2f6b4a;
-  --vp-c-brand-2: #2f6b4a;
-  --vp-c-brand-3: #35795a;
-  --vp-c-brand-soft: rgba(61, 132, 100, 0.14);
-  --vp-c-default-soft: rgba(61, 132, 100, 0.12);
+  --vp-c-brand-1: #b83c1f;
+  --vp-c-brand-2: #b83c1f;
+  --vp-c-brand-3: #c2410c;
+  --vp-c-brand-soft: rgba(194, 65, 12, 0.12);
+  --vp-c-default-soft: rgba(194, 65, 12, 0.1);
 
-  --vp-code-block-bg: #e9f4ec;
-  --vp-code-bg: rgba(61, 132, 100, 0.12);
+  --vp-code-block-bg: #fdeee7;
+  --vp-code-bg: rgba(194, 65, 12, 0.1);
 
-  --novel-hero-wash: rgba(122, 190, 150, 0.18);
-  --novel-selection: rgba(122, 190, 150, 0.32);
+  --novel-hero-wash: rgba(240, 138, 99, 0.16);
+  --novel-selection: rgba(240, 138, 99, 0.32);
 
-  --vp-home-hero-name-background: linear-gradient(120deg, #2f6b4a 25%, #7cc79b);
+  --vp-home-hero-name-background: linear-gradient(120deg, #b83c1f 25%, #f0a072);
 
   --vp-button-alt-bg: transparent;
-  --vp-button-alt-border: #d3e7da;
-  --vp-button-alt-text: #2f6b4a;
-  --vp-button-alt-hover-bg: rgba(61, 132, 100, 0.12);
-  --vp-button-alt-hover-border: #4f9c74;
-  --vp-button-alt-hover-text: #2f6b4a;
+  --vp-button-alt-border: #f4d8cd;
+  --vp-button-alt-text: #b83c1f;
+  --vp-button-alt-hover-bg: rgba(194, 65, 12, 0.1);
+  --vp-button-alt-hover-border: #e2603a;
+  --vp-button-alt-hover-text: #b83c1f;
 }
 
-html.theme-green.dark {
-  --vp-c-bg: #14211a;
-  --vp-c-bg-alt: #111b15;
-  --vp-c-bg-soft: #1a2a20;
-  --vp-c-bg-elv: #1a2a20;
+html.theme-orange.dark {
+  --vp-c-bg: #241512;
+  --vp-c-bg-alt: #1d120f;
+  --vp-c-bg-soft: #2c1c17;
+  --vp-c-bg-elv: #2c1c17;
 
-  --vp-c-border: #2a4033;
-  --vp-c-divider: #24382c;
-  --vp-c-gutter: #0c1410;
+  --vp-c-border: #4a2f27;
+  --vp-c-divider: #40291f;
+  --vp-c-gutter: #170d0a;
 
-  --vp-c-text-1: #d8e8dc;
-  --vp-c-text-2: #9db5a4;
-  --vp-c-text-3: #8ba796;
+  --vp-c-text-1: #f0ddd6;
+  --vp-c-text-2: #c0a49b;
+  --vp-c-text-3: #a98d84;
 
-  --vp-c-brand-1: #86cfa4;
-  --vp-c-brand-2: #3a7e5e;
-  --vp-c-brand-3: #35795a;
-  --vp-c-brand-soft: rgba(134, 207, 164, 0.16);
-  --vp-c-default-soft: rgba(134, 207, 164, 0.14);
+  --vp-c-brand-1: #ff9e7a;
+  --vp-c-brand-2: #c2410c;
+  --vp-c-brand-3: #b83c1f;
+  --vp-c-brand-soft: rgba(255, 158, 122, 0.16);
+  --vp-c-default-soft: rgba(255, 158, 122, 0.14);
 
-  --vp-code-block-bg: #1a2a20;
-  --vp-code-bg: rgba(134, 207, 164, 0.14);
+  --vp-code-block-bg: #2c1c17;
+  --vp-code-bg: rgba(255, 158, 122, 0.14);
 
-  --novel-hero-wash: rgba(134, 207, 164, 0.09);
-  --novel-selection: rgba(134, 207, 164, 0.28);
+  --novel-hero-wash: rgba(255, 158, 122, 0.1);
+  --novel-selection: rgba(255, 158, 122, 0.28);
 
-  --vp-home-hero-name-background: linear-gradient(120deg, #86cfa4 25%, #4f9c74);
+  --vp-home-hero-name-background: linear-gradient(120deg, #ff9e7a 25%, #e2603a);
 
-  /* 暖黄的深色模式把按钮文字改成深色了，淡绿这里要改回白色 */
+  /* 暖黄的深色模式把按钮文字改成深色了，这里要改回白色 */
   --vp-button-brand-text: #ffffff;
   --vp-button-brand-hover-text: #ffffff;
   --vp-button-brand-active-text: #ffffff;
-  --vp-button-brand-active-bg: #2f6b4a;
+  --vp-button-brand-active-bg: #c2410c;
 
   --vp-button-alt-bg: transparent;
-  --vp-button-alt-border: #2a4033;
-  --vp-button-alt-text: #d8e8dc;
-  --vp-button-alt-hover-bg: rgba(134, 207, 164, 0.16);
-  --vp-button-alt-hover-border: #86cfa4;
-  --vp-button-alt-hover-text: #d8e8dc;
+  --vp-button-alt-border: #4a2f27;
+  --vp-button-alt-text: #f0ddd6;
+  --vp-button-alt-hover-bg: rgba(255, 158, 122, 0.16);
+  --vp-button-alt-hover-border: #ff9e7a;
+  --vp-button-alt-hover-text: #f0ddd6;
 }
 
 /* ============================================================
    4. 配色切换按钮
-   三个小圆点：暖黄 / 淡绿 / 淡蓝，当前生效的那个带一圈描边
+   三个小圆点：暖黄 / 淡橙红 / 淡蓝，当前生效的那个带一圈描边
    ============================================================ */
 
 .novel-scheme-switch {
@@ -348,8 +349,8 @@ html.theme-green.dark {
   background: linear-gradient(135deg, #f7ecd7, #c9954a);
 }
 
-.novel-scheme-switch .swatch.green {
-  background: linear-gradient(135deg, #dff0e4, #4f9c74);
+.novel-scheme-switch .swatch.orange {
+  background: linear-gradient(135deg, #ffe2d5, #e2603a);
 }
 
 .novel-scheme-switch .swatch.blue {

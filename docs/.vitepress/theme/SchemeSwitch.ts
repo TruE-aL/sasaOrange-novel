@@ -9,7 +9,7 @@ export const SCHEME_STORAGE_KEY = 'novel-color-scheme'
  */
 const SCHEMES = [
   { id: 'warm', label: '暖黄色系', hint: '暖黄（护眼，默认）' },
-  { id: 'green', label: '淡绿色系', hint: '淡绿' },
+  { id: 'orange', label: '淡橙红色系', hint: '淡橙红（与 orange 呼应）' },
   { id: 'blue', label: '淡蓝色系', hint: '淡蓝' }
 ] as const
 

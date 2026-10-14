@@ -161,11 +161,12 @@ VitePress 会把这些图片打包进站点。
 选择记在浏览器的 localStorage 里，每台设备各记各的。
 
 - **暖黄（默认）**：米黄纸感底色 + 琥珀色强调，长时间阅读不刺眼
-- **淡绿**：米绿底 + 松绿强调
+- **淡橙红**：暖白底 + 橙红强调（和 orange 这个名字呼应）
 - **淡蓝**：与作品许可页同一套蓝
 
 色值和明暗模式都在 `docs/.vitepress/theme/theme.css` 里：
-`:root` / `.dark` 是暖黄，`html.theme-green(-.dark)` 是淡绿，`html.theme-blue(-.dark)` 是淡蓝。
+`:root` / `.dark` 是暖黄，`html.theme-orange(-.dark)` 是淡橙红，`html.theme-blue(-.dark)` 是淡蓝。
+（早先那套淡绿已换成淡橙红，`novel-color-scheme` 里存过 `green` 的读者会被自动映射过来。）
 想再加一套：在 `theme.css` 里补一段 `html.theme-xxx` 变量，再去
 `docs/.vitepress/theme/SchemeSwitch.ts` 的 `SCHEMES` 里加一项，
 最后把新配色名字加进 `config.mts` 首屏脚本的白名单。
