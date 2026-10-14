@@ -1,10 +1,38 @@
-# Cloudflare Pages 配置
+# Cloudflare Pages 配置（Wrangler）
+# 本文件放在项目根目录，Wrangler 会从当前目录向上查找它。
 #
-# name 会决定默认域名：<name>.pages.dev，首次部署后不能改名（要改只能重建项目）。
-# 想换名字，部署前改这里就行。
+# ── 怎么发布 ────────────────────────────────────────────────
+# 在**项目根目录**（也就是本文件所在目录）执行：
+#
+#   首次：
+#     npx wrangler login                       # 浏览器登录 Cloudflare 账号
+#     npx wrangler pages project create sasaorange-novel   # 项目不存在时才需要
+#
+#   之后每次发布：
+#     npm run docs:build                       # 生成 docs/.vitepress/dist
+#     npx wrangler pages deploy                # 读取本文件，把 dist 传上去
+#
+#   或者一条命令搞定（= 上面两步）：
+#     npm run docs:deploy
+#
+# 构建产物（docs/.vitepress/dist）在 .gitignore 里，所以必须先本地构建再上传；
+# 想先在本机确认效果就用 npm run docs:preview。
+#
+# ── 另一种做法：连 Git 仓库自动构建 ──────────────────────────
+# 在 Cloudflare 控制台新建 Pages 项目并连上这个仓库，填：
+#   构建命令：npm run docs:build
+#   输出目录：docs/.vitepress/dist
+# 注意：它的构建环境没有 ImageMagick，同步脚本会跳过封面压缩并打印一行提示，
+# 站点本身不受影响（那两个图标文件已经入库，所以不会缺）。
+# 采用这种方式时，本文件只需保留 name 与 pages_build_output_dir 两项。
+
+# 项目名，同时决定默认域名 <name>.pages.dev
+# 首次部署会用它创建/关联项目，之后**不能改名**（要换只能重建项目），所以先想好。
 name = "sasaorange-novel"
 
-# 构建输出目录，相对于本文件所在位置（项目根目录）
+# 构建产物目录，相对本文件所在位置。改这里的话上面命令里的路径也要跟着改。
 pages_build_output_dir = "docs/.vitepress/dist"
 
+# 兼容日期：决定 Workers 运行时 API 的默认行为。
+# 这个站点是纯静态资源、没有 Functions，写部署当天的日期即可。
 compatibility_date = "2026-10-14"
