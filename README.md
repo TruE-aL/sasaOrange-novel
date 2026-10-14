@@ -182,6 +182,37 @@ VitePress 会把这些图片打包进站点。
 首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
 `docs/.vitepress/theme/ReaderSettings.ts` 的 `DEFAULTS` 里。
 
+## 切页动画
+
+切章节时，正文会从下方 50px 处淡入（1s），章名再单独「落下来」（2s，前一半先藏着）。
+效果借自 [KeqingMoe/sakurairo](https://github.com/KeqingMoe/sakurairo)（VitePress 版的
+Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 两条关键帧，
+这里只取了视觉参数（位移量与时长），重新写成本站自己的 `novel-page-in` / `novel-title-in`。
+
+实现要点（`docs/.vitepress/theme/theme.css` 第 8 节）：
+
+- 动画挂在**页面组件的根节点**上。VitePress 的 `.vp-doc` 外层容器是常驻的，
+  但它里面的页面组件每次切页都会重建，所以这条纯 CSS 动画会自动重播——**不需要任何 JS 钩子**，
+  也就不会出现「钩子没装上就看不到」的情况
+- 章节页与许可页用 `.novel-chapter .vp-doc > div` / `.novel-license .vp-doc > div`；
+  首页多套了一层 `VPHomeContent`，用 `.VPHomeContent.vp-doc > div > div`
+- 默认**不禁用**（原主题也没禁用）——所以即使系统开了「减弱动效」也能看到。
+  想尊重该设置，在 theme.css 里加：
+
+  ```css
+  @media (prefers-reduced-motion: reduce) {
+    .novel-chapter .vp-doc > div,
+    .novel-license .vp-doc > div,
+    .VPHomeContent.vp-doc > div > div,
+    .novel-chapter .vp-doc > div > h1 {
+      animation: none;
+    }
+  }
+  ```
+
+- 调快/调慢就改那两处 `1s` / `2s`，以及关键帧里的 `translateY(50px)`；
+  不想要就删掉第 8 节整节
+
 ## 阅读进度
 
 每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，

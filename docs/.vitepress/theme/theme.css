@@ -682,7 +682,56 @@ html.theme-green.dark {
 }
 
 /* ============================================================
-   8. 作品首页（/novels/<slug>/）
+   8. 切页入场动画
+
+   效果借鉴 KeqingMoe/sakurairo 主题的 Post.vue：
+   正文整块从下方 50px 处淡入（1s），章名再单独「落下来」（2s，前一半先藏着）。
+
+   关键点：动画挂在**页面组件的根节点**上。VitePress 的 .vp-doc 外层容器是常驻的，
+   但它里面的页面组件每次切页都会重建，所以这条纯 CSS 动画会自动重播，
+   不需要任何 JS 钩子——也就不怕钩子没装上。
+   ============================================================ */
+
+@keyframes novel-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(50px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes novel-title-in {
+  0%,
+  50% {
+    opacity: 0;
+    transform: translateY(-100%);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 章节页 / 许可页：Content 的 .vp-doc 下面一层就是页面根节点 */
+.novel-chapter .vp-doc > div,
+.novel-license .vp-doc > div,
+/* 首页：外面还套了一层 VPHomeContent */
+.VPHomeContent.vp-doc > div > div {
+  animation: novel-page-in 1s both;
+}
+
+/* 章名单独淡入：先藏 1s，等正文升上来之后再落下 */
+.novel-chapter .vp-doc > div > h1 {
+  animation: novel-title-in 2s both;
+}
+
+/* ============================================================
+   9. 作品首页（/novels/<slug>/）
    ============================================================ */
 
 /* 书架卡片（首页按分组排出的一张张书卡）。
