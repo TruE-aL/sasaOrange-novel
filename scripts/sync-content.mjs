@@ -118,17 +118,8 @@ function landingPage(novel, site) {
 
 /** 书架首页 */
 function homePage(novels, site) {
-  const first = novels[0]
   const lines = ['---', 'layout: home', '', 'hero:', `  name: ${yaml(site.title)}`]
   if (site.tagline) lines.push(`  tagline: ${yaml(site.tagline)}`)
-  if (first) {
-    lines.push('  actions:')
-    lines.push(
-      '    - theme: brand',
-      `      text: ${yaml(`开始阅读《${first.title}》`)}`,
-      `      link: ${first.home}`
-    )
-  }
   lines.push('---', '')
 
   // 按 site.json 里的 sections 分组，每组一段标题 + 卡片
