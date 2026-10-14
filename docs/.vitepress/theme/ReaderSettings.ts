@@ -1,21 +1,21 @@
 import { defineComponent, h, computed, onMounted, onUnmounted, ref } from 'vue'
 import { useData } from 'vitepress'
 
-/** 和 config.mts 里那段防闪烁脚本共用的键名 */
-export const READER_STORAGE_KEY = 'novel-reader-settings'
+/** 和 config.mts 里那段防闪烁脚本共用的键名。改了默认值就升版本号，读者那边会回到新默认 */
+export const READER_STORAGE_KEY = 'novel-reader-settings-v2'
 
-const DEFAULTS = { size: 17, leading: 1.95, font: 'sans' as 'sans' | 'serif' }
-const SIZE_RANGE = { min: 14, max: 24, step: 1 }
+const DEFAULTS = { size: 20, leading: 1.95, font: 'serif' as 'sans' | 'serif' }
+const SIZE_RANGE = { min: 14, max: 32, step: 1 }
 const LEADING_RANGE = { min: 1.5, max: 2.6, step: 0.05 }
 
 type Settings = typeof DEFAULTS
 
-/** 把设置写到 <html> 上：字号与行距是 CSS 变量，字体是一个类名 */
+/** 把设置写到 <html> 上：字号与行距是 CSS 变量；默认是宋体，选了黑体才加 reader-sans */
 function apply(settings: Settings) {
   const root = document.documentElement
   root.style.setProperty('--novel-reader-size', `${settings.size}px`)
   root.style.setProperty('--novel-reader-leading', String(settings.leading))
-  root.classList.toggle('reader-serif', settings.font === 'serif')
+  root.classList.toggle('reader-sans', settings.font === 'sans')
 }
 
 function load(): Settings {
@@ -24,7 +24,7 @@ function load(): Settings {
     return {
       size: Number(saved?.size) || DEFAULTS.size,
       leading: Number(saved?.leading) || DEFAULTS.leading,
-      font: saved?.font === 'serif' ? 'serif' : 'sans'
+      font: saved?.font === 'sans' ? 'sans' : 'serif'
     }
   } catch {
     return { ...DEFAULTS }
@@ -116,7 +116,7 @@ export default defineComponent({
         slider('行距', 'leading', LEADING_RANGE),
         h('div', { class: 'reader-row' }, [
           h('span', { class: 'reader-label' }, '字体'),
-          h('span', { class: 'reader-fonts' }, [fontButton('sans', '黑体'), fontButton('serif', '宋体')])
+          h('span', { class: 'reader-fonts' }, [fontButton('serif', '宋体'), fontButton('sans', '黑体')])
         ]),
         h(
           'button',

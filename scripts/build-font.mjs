@@ -45,6 +45,11 @@ if (!source) {
 
 // 1. 收集站点里出现过的所有字符
 const chars = new Set(UI_TEXT)
+// 完整 ASCII：站名、章节里的英文与数字（Homer-a291d4、paper…）也用同一套字体，
+// 否则会回退到别的字体，同一行里字母形状会不一致
+for (let code = 0x20; code <= 0x7e; code++) chars.add(String.fromCharCode(code))
+// 中文标点与常用符号，避免以后写新段落时缺标点
+chars.add('、。，．；：？！「」『』（）《》〈〉—…·～％＃＆＊＋－／＝')
 const walk = (dir) => {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const file = path.join(dir, entry.name)

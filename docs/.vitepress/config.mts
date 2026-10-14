@@ -113,10 +113,10 @@ export default defineConfig({
         'try{',
         "var d=document.documentElement,s=localStorage.getItem('novel-color-scheme');",
         "if(s==='green'||s==='blue')d.classList.add('theme-'+s);",
-        "var r=JSON.parse(localStorage.getItem('novel-reader-settings')||'null');",
+        "var r=JSON.parse(localStorage.getItem('novel-reader-settings-v2')||'null');",
         "if(r){if(r.size)d.style.setProperty('--novel-reader-size',r.size+'px');",
         "if(r.leading)d.style.setProperty('--novel-reader-leading',String(r.leading));",
-        "if(r.font==='serif')d.classList.add('reader-serif')}",
+        "if(r.font==='sans')d.classList.add('reader-sans')}",
         '}catch(e){}'
       ].join('')
     ]

@@ -31,12 +31,23 @@
   font-display: swap;
 }
 
+/* 读者在「阅读设置」里选了黑体 */
+html.reader-sans {
+  --vp-font-family-base: -apple-system, BlinkMacSystemFont, 'Noto Sans SC', 'PingFang SC',
+    'Microsoft YaHei', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji';
+}
+
 /* ============================================================
    1. 暖黄色系（默认）
    米黄底 + 琥珀色强调，长时间阅读不刺眼
    ============================================================ */
 
 :root {
+  /* 全站字体：默认宋体（思源宋体子集），读者在阅读设置里可以切回黑体 */
+  --vp-font-family-base: 'Novel Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC',
+    'SimSun', -apple-system, BlinkMacSystemFont, 'Noto Sans SC', sans-serif, 'Apple Color Emoji',
+    'Segoe UI Emoji', 'Noto Color Emoji';
+
   /* 顶栏站名旁边那个小图标的高度（默认 1.5rem，略放大一点更显眼） */
   --vp-nav-logo-height: 1.75rem;
 
@@ -623,19 +634,17 @@ html.theme-green.dark {
    ============================================================ */
 
 .novel-chapter .vp-doc {
-  font-size: var(--novel-reader-size, 17px);
+  font-size: var(--novel-reader-size, 20px);
   line-height: var(--novel-reader-leading, 1.95);
 }
 
-/* 读者在「阅读设置」里选了宋体 */
-html.reader-serif .novel-chapter .vp-doc {
-  font-family: 'Novel Serif SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'Songti SC', 'SimSun', serif;
-}
-
-/* 中文段落首行缩进两格 */
+/* 中文段落首行缩进两格。
+   行距必须也直接写在 p 上：VitePress 的 `.vp-doc p{line-height:1.75}` 是直接设值，
+   会盖过从容器继承下来的行距，只改容器是没用的（这就是行距滑块之前不生效的原因）。 */
 .novel-chapter .vp-doc p {
   margin: 0.8em 0;
   text-indent: 2em;
+  line-height: var(--novel-reader-leading, 1.95);
 }
 
 /* 章名居中，下方一道主题色短线。
@@ -670,13 +679,6 @@ html.reader-serif .novel-chapter .vp-doc {
   text-indent: 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-}
-
-/* 手机上字号略收一点，行距不变 */
-@media (max-width: 640px) {
-  .novel-chapter .vp-doc {
-    font-size: var(--novel-reader-size, 16px);
-  }
 }
 
 /* ============================================================
