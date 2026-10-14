@@ -101,13 +101,13 @@ export default defineConfig({
     }
   },
 
-  // 配色：默认暖黄（护眼），读者选过淡蓝才加 theme-blue，
+  // 配色：默认暖黄（护眼），读者选过淡绿/淡蓝才加对应 class，
   // 这段脚本在首屏渲染前执行，切换色系时不会闪一下
   head: [
     [
       'script',
       {},
-      "try{if(localStorage.getItem('novel-color-scheme')==='blue')document.documentElement.classList.add('theme-blue')}catch(e){}"
+      "try{var s=localStorage.getItem('novel-color-scheme');if(s==='green'||s==='blue')document.documentElement.classList.add('theme-'+s)}catch(e){}"
     ]
   ],
 

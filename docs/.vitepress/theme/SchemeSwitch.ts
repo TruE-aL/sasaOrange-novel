@@ -3,17 +3,20 @@ import { defineComponent, h, onMounted, ref } from 'vue'
 /** localStorage 里的键名，和 config.mts 里那段防闪烁脚本共用 */
 export const SCHEME_STORAGE_KEY = 'novel-color-scheme'
 
+/**
+ * 三套配色。warm 是默认，写在 theme.css 的 :root/.dark 里，不加任何 class；
+ * 其它配色各自加一个 html.theme-<id> 类名。
+ */
 const SCHEMES = [
   { id: 'warm', label: '暖黄色系', hint: '暖黄（护眼，默认）' },
+  { id: 'green', label: '淡绿色系', hint: '淡绿' },
   { id: 'blue', label: '淡蓝色系', hint: '淡蓝' }
 ] as const
 
 type SchemeId = (typeof SCHEMES)[number]['id']
 
-/**
- * 配色切换按钮：两个小圆点，暖黄 / 淡蓝。
- * 默认暖黄（不加任何 class），选淡蓝时给 <html> 加 theme-blue。
- */
+const CLASSES = SCHEMES.filter((scheme) => scheme.id !== 'warm').map((scheme) => `theme-${scheme.id}`)
+
 export default defineComponent({
   name: 'SchemeSwitch',
   props: {
@@ -24,12 +27,15 @@ export default defineComponent({
 
     const apply = (scheme: SchemeId) => {
       current.value = scheme
-      document.documentElement.classList.toggle('theme-blue', scheme === 'blue')
+      for (const className of CLASSES) {
+        document.documentElement.classList.toggle(className, className === `theme-${scheme}`)
+      }
     }
 
     onMounted(() => {
       // 以页面上实际生效的 class 为准，避免首屏脚本和这里的状态打架
-      current.value = document.documentElement.classList.contains('theme-blue') ? 'blue' : 'warm'
+      const active = CLASSES.find((className) => document.documentElement.classList.contains(className))
+      current.value = (active?.replace('theme-', '') as SchemeId) || 'warm'
     })
 
     const pick = (scheme: SchemeId) => {
