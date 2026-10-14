@@ -110,10 +110,15 @@ export default defineConfig({
       {},
       [
         'try{',
-        "var d=document.documentElement,s=localStorage.getItem('novel-color-scheme');",
+        'var d=document.documentElement,s=localStorage.getItem(\'novel-color-scheme\');',
         // 白名单方式，避免 localStorage 被写入奇怪的值；green 是旧名字，映射到 orange
         "if(s==='green')s='orange';",
-        "if(s==='orange'||s==='blue')d.classList.add('theme-'+s);",
+        "if(!(s==='warm'||s==='orange'||s==='blue')){",
+        // 读者没明确选过：首页用淡橙红，其它页面用暖黄（和 SchemeSwitch 里的 pageDefault 一致）
+        "var p=location.pathname.replace(/index\\.html$/,'');",
+        "s=(p===''||/\\/$/.test(p))?'orange':'warm'",
+        '}',
+        "if(s!=='warm')d.classList.add('theme-'+s);",
         "var r=JSON.parse(localStorage.getItem('novel-reader-settings-v2')||'null');",
         "if(r){if(r.size)d.style.setProperty('--novel-reader-size',r.size+'px');",
         "if(r.leading)d.style.setProperty('--novel-reader-leading',String(r.leading));",
