@@ -224,6 +224,14 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
 数据存在 localStorage 的 `novel-progress` 里）。几条规则：
 
+正文页顶部还有一条 3px 的进度条（`theme/ReadingProgress.ts`，写法借鉴 sakurairo 的
+`.iro-scroll-percent`），宽度就是已读百分比；只在正文页显示，首页与许可页不显示。
+想换颜色就改 `theme.css` 第 9 节里的 `background-image`，不想要就把 `theme/index.ts`
+里 `'layout-top'` 那一行删掉。
+
+访问不存在的地址时的 404 文案也是中文的，写在 `docs/.vitepress/config.mts` 的
+`themeConfig.notFound` 里（`title` / `quote` / `linkText`）。
+
 - 只记**正文页**：书架首页、作品许可页这些不记
 - 点「上一章 / 下一章」进入的新章节**不恢复**，从开头读（那种情况读者通常想看新内容）
 - 带 `#锚点` 的链接不恢复，交给 VitePress 自己定位

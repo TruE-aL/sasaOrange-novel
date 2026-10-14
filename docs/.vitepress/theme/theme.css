@@ -732,7 +732,36 @@ html.theme-orange.dark {
 }
 
 /* ============================================================
-   9. 作品首页（/novels/<slug>/）
+   9. 顶部阅读进度条
+
+   借鉴 sakurairo 的 .iro-scroll-percent：固定在顶端的一条细线，
+   宽度=已读百分比。只在正文页显示（pageClass 为 novel-chapter）。
+   ============================================================ */
+
+.novel-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  display: none;
+  height: 3px;
+  background-image: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
+  transition: width 0.12s linear;
+}
+
+/* 正文页才亮出来；首页、许可页这类不需要 */
+.novel-chapter .novel-progress {
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novel-progress {
+    transition: none;
+  }
+}
+
+/* ============================================================
+   10. 作品首页（/novels/<slug>/）
    ============================================================ */
 
 /* 书架卡片（首页按分组排出的一张张书卡）。

@@ -137,6 +137,15 @@ export default defineConfig({
 
     outline: { level: [2, 3], label: '本页目录' },
     docFooter: { prev: '上一章', next: '下一章' },
+
+    // 404 文案（VitePress 内置支持，默认是英文的 PAGE NOT FOUND）
+    notFound: {
+      title: '这一页不存在',
+      quote: '你要找的地址没有内容——也许是链接抄错了一个字，也许这一章还没写。',
+      linkText: '回到书架',
+      linkLabel: '回到书架'
+    },
+
     returnToTopLabel: '回到顶部',
     sidebarMenuLabel: '章节目录',
     darkModeSwitchLabel: '外观',

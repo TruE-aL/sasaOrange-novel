@@ -1,6 +1,7 @@
 import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import ReaderSettings from './ReaderSettings'
+import ReadingProgress from './ReadingProgress'
 import SchemeSwitch from './SchemeSwitch'
 import { installReadingProgress } from './readingProgress'
 import './theme.css'
@@ -22,7 +23,8 @@ export default {
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'nav-bar-content-after': () => [h(SchemeSwitch), h(ReaderSettings)],
-      'nav-screen-content-after': () => [h(SchemeSwitch, { withLabel: true }), h(ReaderSettings, { withLabel: true })]
+      'nav-screen-content-after': () => [h(SchemeSwitch, { withLabel: true }), h(ReaderSettings, { withLabel: true })],
+      'layout-top': () => h(ReadingProgress)
     })
   }
 }

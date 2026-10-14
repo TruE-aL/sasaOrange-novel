@@ -11,6 +11,13 @@ import type { Router } from 'vue-router'
  */
 export const PROGRESS_STORAGE_KEY = 'novel-progress'
 
+/** 顶部进度条用的百分比 0–100。（纯函数，放在这里是因为它和阅读进度同属一件事） */
+export function progressPercent(scrollTop: number, scrollHeight: number, innerHeight: number) {
+  const max = scrollHeight - innerHeight
+  if (!(max > 0)) return 0
+  return Math.min(100, Math.max(0, Math.round((scrollTop / max) * 100)))
+}
+
 /** 太靠上（不足这么多像素）就不必恢复 */
 const MIN_RESTORE = 120
 /** 距页尾这么近就算读完了 */
