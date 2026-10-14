@@ -19,7 +19,7 @@ export type Novel = {
   status: string
   license: string
   licenseUrl: string
-  home: string
+  start: string
   licenseFile: string
   licensePage: string
   coverFile: string

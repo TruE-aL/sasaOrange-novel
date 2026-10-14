@@ -222,7 +222,8 @@ export function loadNovels(contentDir, options = {}) {
       status: meta.status || '',
       license: meta.license || '',
       licenseUrl: meta.licenseUrl || '',
-      home: `${base}/`,
+      // 点书架上的书卡直接进第一章，没有作品首页这一层
+      start: chapters[0].href,
       licenseFile,
       licensePage: licenseFile ? `${base}/license` : '',
       coverFile,

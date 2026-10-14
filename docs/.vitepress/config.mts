@@ -55,7 +55,7 @@ const sidebar = Object.fromEntries(
 // 作品不多时，顶栏直接列出书名；作品多了就只留书架入口
 const nav = [
   { text: '书架', link: '/' },
-  ...(novels.length <= 5 ? novels.map((novel) => ({ text: novel.title, link: novel.home })) : [])
+  ...(novels.length <= 5 ? novels.map((novel) => ({ text: novel.title, link: novel.start })) : [])
 ]
 
 /**

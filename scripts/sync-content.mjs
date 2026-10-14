@@ -3,13 +3,13 @@
  * 生成站点里那几个「算出来」的页面：
  *
  *   docs/index.md                    书架首页（列出全部作品）
- *   docs/novels/<作品>/index.md       作品首页（简介、章数、字数、目录）
  *   docs/public/novels/<slug>/cover.jpg  封面（压到 900px 宽）
  *
  * 正文（章节、许可页）现在就直接放在 docs/novels/<作品>/ 里，不再复制。
+ * 点书架上的书卡直接进第一章，不再有「作品首页」这一层。
  * 「作品文件夹 → 网址」的映射见 scripts/lib/novels.mjs 与 .vitepress/config.mts。
  *
- * 生成的文件末尾有一行 generated 标记；想自己写这两个页面，把标记删掉即可，脚本就不覆盖了。
+ * 生成的书架页末尾有一行 generated 标记；想自己写，把标记删掉即可，脚本就不覆盖了。
  * 手动同步：npm run docs:sync
  */
 import fs from 'node:fs'
@@ -52,7 +52,12 @@ function writeGenerated(file, content) {
 fs.mkdirSync(publicNovelsDir, { recursive: true })
 
 for (const novel of novels) {
-  writeGenerated(path.join(novel.sourceDir, 'index.md'), landingPage(novel, site))
+  // 旧版本生成过作品首页，这里清掉（只删带 generated 标记的，手写的不动）
+  const oldLanding = path.join(novel.sourceDir, 'index.md')
+  if (readText(oldLanding).includes(MARK)) {
+    fs.rmSync(oldLanding)
+    log(`已移除旧的作品首页 docs/novels/${novel.folder}/index.md`)
+  }
 
   if (novel.cover) {
     const coverDir = path.join(publicNovelsDir, novel.slug)
@@ -62,7 +67,7 @@ for (const novel of novels) {
 
   log(
     `《${novel.title}》：${novel.chapters.length} 篇、${novel.stats.chapters} 章、` +
-      `约 ${(novel.stats.words / 10000).toFixed(1)} 万字 → ${novel.home}`
+      `约 ${(novel.stats.words / 10000).toFixed(1)} 万字 → ${novel.start}`
   )
 }
 
@@ -82,39 +87,6 @@ log(`书架：${novels.length} 部作品`)
 /* ============================================================
    页面内容
    ============================================================ */
-
-/** 作品首页 */
-function landingPage(novel, site) {
-  const { stats } = novel
-  const lines = ['---', `title: ${yaml(novel.title)}`, 'pageClass: novel-home', '---', '']
-  lines.push(`# ${novel.title}`, '')
-  if (novel.tagline) lines.push(`> ${novel.tagline}`, '')
-  if (novel.description) lines.push(novel.description, '')
-
-  const metaParts = []
-  if (novel.author && novel.author !== site.author) metaParts.push(`作者：${novel.author}`)
-  if (novel.status) metaParts.push(`**${novel.status}**`)
-  if (stats.chapters) metaParts.push(`${stats.chapters} 章`)
-  if (stats.chapters === 0 && stats.extras.length) metaParts.push(`${stats.extras.length} 篇`)
-  metaParts.push(`约 ${(stats.words / 10000).toFixed(1)} 万字`)
-  lines.push(`${metaParts.join(' · ')}。`, '')
-
-  const first = novel.chapters[0]
-  lines.push('<p class="novel-actions">')
-  lines.push(`  <a class="novel-btn primary" href="${first.href}">开始阅读</a>`)
-  if (novel.licensePage) {
-    lines.push(`  <a class="novel-btn" href="${novel.licensePage}">作品许可</a>`)
-  }
-  lines.push('</p>', '')
-
-  lines.push('## 目录', '')
-  novel.chapters.forEach((chapter, index) => {
-    lines.push(`${index + 1}. [${chapter.listText}](${chapter.href})`)
-  })
-  lines.push('')
-
-  return lines.join('\n')
-}
 
 /** 书架首页 */
 function homePage(novels, site) {
@@ -145,7 +117,7 @@ function homePage(novels, site) {
     lines.push('<div class="shelf-grid">')
     for (const novel of group.items) {
       const description = novel.tagline || novel.description
-      lines.push(`  <a class="shelf-card" href="${novel.home}">`)
+      lines.push(`  <a class="shelf-card" href="${novel.start}">`)
       lines.push(`    <span class="shelf-title">${escapeHtml(novel.title)}</span>`)
       lines.push(`    <span class="shelf-meta">${escapeHtml(cardMeta(novel, site))}</span>`)
       if (description) {
