@@ -28,9 +28,16 @@ export const readJson = (file, fallback) => {
 /** 生成 YAML 里安全的字符串；JSON 的双引号写法本身就是合法 YAML */
 export const yaml = (value) => JSON.stringify(value)
 
+/**
+ * 转义 HTML。侧边栏与顶栏的文字都是 v-html 渲染的，书名/章节名会被当 HTML 解析，
+ * 所以内容与属性两种场景都走这里：
+ *   元素内容：`<span>${escapeHtml(title)}</span>`
+ *   属性值：  `href="${escapeHtml(link)}"`
+ * 单引号也一并转掉，避免以后有人把值放进单引号属性里时漏出去。
+ */
 export const escapeHtml = (value) => {
-  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
-  return String(value).replace(/[&<>"]/g, (char) => map[char])
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }
+  return String(value).replace(/[&<>"']/g, (char) => map[char])
 }
 
 const stripQuotes = (value) => value.trim().replace(/^['"]|['"]$/g, '')

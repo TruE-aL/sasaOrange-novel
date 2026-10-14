@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitepress'
-import { loadNovels, type Chapter } from '../../scripts/lib/novels.mjs'
+import { escapeHtml, loadNovels, type Chapter } from '../../scripts/lib/novels.mjs'
 
 const configDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url))
 
@@ -15,14 +15,10 @@ if (novels.length === 0) {
   console.warn(`[vitepress] 在 ${contentDir} 里没有读到作品文件夹，导航会是空的。`)
 }
 
-const escapeHtml = (value: string) => {
-  const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
-  return value.replace(/[&<>"]/g, (char) => map[char])
-}
-
 /**
  * 目录项排版：章节号是小字淡色的一列，章节名在右侧对齐。
- * 侧边栏文字是 v-html 渲染的，所以这里能拆成两个 span。
+ * 侧边栏文字是 v-html 渲染的，所以这里能拆成两个 span；
+ * 书名、章节名都必须转义（用 scripts/lib/novels.mjs 里那一份，避免两处实现跑偏）。
  */
 const tocText = (chapter: Chapter) =>
   `<span class="toc-num">${escapeHtml(chapter.label)}</span>` +
@@ -38,7 +34,7 @@ const sidebar = Object.fromEntries(
     `/novels/${novel.slug}/`,
     [
       {
-        text: novel.title,
+        text: escapeHtml(novel.title),
         items: novel.chapters.map((chapter) => ({
           text: tocText(chapter),
           link: chapter.href,
@@ -52,10 +48,13 @@ const sidebar = Object.fromEntries(
   ])
 )
 
-// 作品不多时，顶栏直接列出书名；作品多了就只留书架入口
+// 作品不多时，顶栏直接列出书名；作品多了就只留书架入口。
+// 顶栏菜单项的 text 同样是 v-html 渲染的，所以书名要转义。
 const nav = [
   { text: '书架', link: '/' },
-  ...(novels.length <= 5 ? novels.map((novel) => ({ text: novel.title, link: novel.start })) : [])
+  ...(novels.length <= 5
+    ? novels.map((novel) => ({ text: escapeHtml(novel.title), link: novel.start }))
+    : [])
 ]
 
 /**

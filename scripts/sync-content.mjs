@@ -147,14 +147,16 @@ function homePage(novels, site) {
   }
 
   for (const group of groups) {
-    lines.push(`## ${group.title}`, '')
+    // 分组标题来自 site.json，是被信任的配置；这里只把换行压掉，避免标题被截断成两行
+    lines.push(`## ${String(group.title).replace(/\s+/g, ' ').trim()}`, '')
     // description 是可选的：site.json 里不写就没有这行小字
     if (group.description) lines.push(group.description, '')
     // 卡片是原生 HTML：一行一个，中间不留空行，markdown 会整段原样输出
     lines.push('<div class="shelf-grid">')
     for (const novel of group.items) {
       const description = novel.tagline || novel.description
-      lines.push(`  <a class="shelf-card" href="${novel.start}">`)
+      // href 会被写进 HTML 属性，所以也走转义（文件名里万一有引号也不会跑出去）
+      lines.push(`  <a class="shelf-card" href="${escapeHtml(novel.start)}">`)
       lines.push('    <span class="shelf-head">')
       lines.push(
         `      <span class="shelf-mark" aria-hidden="true">${escapeHtml(initialOf(novel.title))}</span>`
