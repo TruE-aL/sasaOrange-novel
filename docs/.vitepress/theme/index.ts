@@ -2,7 +2,6 @@ import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
 import ReaderSettings from './ReaderSettings'
 import SchemeSwitch from './SchemeSwitch'
-import { installPageTransition } from './pageTransition'
 import { installReadingProgress } from './readingProgress'
 import './theme.css'
 
@@ -18,11 +17,6 @@ export default {
     } catch (error) {
       // 阅读进度只是个增强功能，绝不该因为它让整站白屏
       console.error('[novel] 阅读进度初始化失败：', error)
-    }
-    try {
-      installPageTransition(router)
-    } catch (error) {
-      console.error('[novel] 页面过渡初始化失败：', error)
     }
   },
   Layout() {

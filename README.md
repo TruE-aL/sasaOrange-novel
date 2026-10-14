@@ -182,37 +182,6 @@ VitePress 会把这些图片打包进站点。
 首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
 `docs/.vitepress/theme/ReaderSettings.ts` 的 `DEFAULTS` 里。
 
-## 页面切换动画
-
-章节之间跳转（点「下一章」、点目录、点书架卡片）时，正文内容会**按翻页方向横向滑入**：
-
-- 往后翻（下一章、目录里更靠后的章）→ 从右侧滑入
-- 往回翻（上一章）→ 从左侧滑入
-- 跨作品、回书架等判断不出顺序的情况 → 默认从右侧滑入
-
-幅度 48px、360ms。方向靠侧边栏的链接顺序判断，所以同一本书内任意跳转都符合直觉；
-动的是内容区，侧边栏和大纲不动，阅读时不会有晃动感。找不到顺序时也不会出错，按默认方向播。
-
-实现见 `docs/.vitepress/theme/pageTransition.ts`：
-
-- 用 Web Animations API，只在路由切换后给内容区播一段动画，
-  **不碰 VitePress 自己的组件结构**（用 `<Transition>` 包内容需要改它的内部渲染，风险大）
-- 只做入场：退场动画需要在切换前阻塞 DOM 替换，会拖慢导航手感
-- 首次进入（刷新 / 直接输网址）不播，避免内容已经在屏幕上还闪一下
-- 读者系统里开了「减弱动效」（`prefers-reduced-motion: reduce`）就完全不播
-
-想调节奏：改该文件顶部的 `DURATION`（毫秒）、`EASING`、`OFFSET`（位移像素）。
-换回上下移动，就是把关键帧里的 `translateX(...)` 改成 `translateY(...)`；
-不想要动画就直接把 `docs/.vitepress/theme/index.ts` 里的 `installPageTransition(router)`
-一行删掉。
-
-**看不到动画时先看这两点**：
-
-1. 路由器钩子只在应用启动时注册，**改完代码必须整页刷新**（热更新不会重跑 `enhanceApp`），
-   而且首次进入那一下本来就不播——要在章节之间点一次才看得到；
-2. 手机系统若开了「减弱动效」，动画会被跳过。开发模式下控制台会打印提示，
-   想强制打开：`localStorage.setItem('novel-motion', 'force')` 然后刷新。
-
 ## 阅读进度
 
 每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
