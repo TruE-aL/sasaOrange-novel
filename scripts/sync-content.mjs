@@ -90,9 +90,8 @@ log(`书架：${novels.length} 部作品`)
 
 /** 书架首页 */
 function homePage(novels, site) {
-  const lines = ['---', 'layout: home', '', 'hero:', `  name: ${yaml(site.title)}`]
-  if (site.tagline) lines.push(`  tagline: ${yaml(site.tagline)}`)
-  lines.push('---', '')
+  // 不放 hero：首页只有分组书架，保持干净（站点名仍显示在顶栏和浏览器标签上）
+  const lines = ['---', 'layout: home', '---', '']
 
   // 按 site.json 里的 sections 分组，每组一段标题 + 卡片
   const groups = site.sections
@@ -107,11 +106,12 @@ function homePage(novels, site) {
   const declared = new Set(site.sections.map((section) => section.id))
   const others = novels.filter((novel) => !declared.has(novel.category))
   if (others.length > 0) {
-    groups.push({ title: '其他', description: '', items: others })
+    groups.push({ title: '其他', items: others })
   }
 
   for (const group of groups) {
     lines.push(`## ${group.title}`, '')
+    // description 是可选的：site.json 里不写就没有这行小字
     if (group.description) lines.push(group.description, '')
     // 卡片是原生 HTML：一行一个，中间不留空行，markdown 会整段原样输出
     lines.push('<div class="shelf-grid">')

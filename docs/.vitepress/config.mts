@@ -124,9 +124,11 @@ export default defineConfig({
     lightModeSwitchTitle: '切换到浅色模式',
     darkModeSwitchTitle: '切换到深色模式',
 
+    // 页脚文案在 docs/site.json 的 footer 里改；本站收录了别人的作品，
+    // 所以默认说法是「版权归各自作者所有」
     footer: {
-      message: `本站作品版权归 ${site.author || '作者'} 所有，转载请保留出处`,
-      copyright: site.author ? `© ${site.author}` : ''
+      message: site.footer?.message || '本站作品版权归各自作者所有，转载请注明出处',
+      copyright: site.footer?.copyright ?? (site.author ? `© ${site.author}` : '')
     },
 
     search: {

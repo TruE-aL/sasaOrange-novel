@@ -28,7 +28,15 @@ export type Novel = {
   stats: { chapters: number; words: number; extras: string[] }
 }
 
-export type Site = { title: string; author: string; tagline: string }
+export type Section = { id: string; title: string; description?: string }
+
+export type Site = {
+  title: string
+  author: string
+  tagline: string
+  footer?: { message?: string; copyright?: string }
+  sections: Section[]
+}
 
 export declare function loadNovels(contentDir: string): { site: Site; novels: Novel[] }
 export declare function readText(file: string): string

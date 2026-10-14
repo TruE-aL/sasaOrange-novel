@@ -2,16 +2,18 @@
   "title": "sasaOrange的小书屋",
   "author": "sasaOrange",
   "tagline": "原创小说，以及一些我想推荐的书",
+  "footer": {
+    "message": "本站作品版权归各自作者所有，转载请注明出处",
+    "copyright": "© sasaOrange"
+  },
   "sections": [
     {
       "id": "original",
-      "title": "我的作品",
-      "description": "我写的原创小说"
+      "title": "我的作品"
     },
     {
       "id": "recommend",
-      "title": "个人推荐书籍",
-      "description": "别人写的书，我读过之后想推荐给你"
+      "title": "个人推荐书籍"
     }
   ]
 }

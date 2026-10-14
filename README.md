@@ -22,7 +22,7 @@ npm run docs:sync     # 只更新生成的书架页/作品页，不启动服务
 
 ```
 docs/
-  site.json                     站点级设置：站名、作者、首页一句话
+  site.json                     站点级设置：站名、作者、摘要、页脚文案、书架分组
   index.md                      书架首页（生成物）
   novels/
     _模板/                       新作品从这里复制（下划线开头，不进站点）
@@ -60,14 +60,26 @@ docs/
 
 ## 书架分组
 
-首页按 `docs/site.json` 里的 `sections` 分组摆书，标题、说明、先后顺序都在那里改：
+首页不放横幅（hero），只有分组书架，站名显示在顶栏和浏览器标签上。
+分组标题和先后顺序在 `docs/site.json` 的 `sections` 里改（`description` 可选，写了会显示在标题下方）：
 
 ```json
 "sections": [
-  { "id": "original",  "title": "我的作品",     "description": "我写的原创小说" },
-  { "id": "recommend", "title": "个人推荐书籍", "description": "别人写的书，我读过之后想推荐给你" }
+  { "id": "original",  "title": "我的作品" },
+  { "id": "recommend", "title": "个人推荐书籍" }
 ]
 ```
+
+页脚文案也在同一个文件里：
+
+```json
+"footer": {
+  "message": "本站作品版权归各自作者所有，转载请注明出处",
+  "copyright": "© sasaOrange"
+}
+```
+
+`tagline` 现在只作为页面的 meta 描述（搜索引擎和分享预览用），不显示在页面上。
 
 每部作品在自己 `novel.json` 里用 `category` 指定归到哪一组，不写就默认进第一组：
 
