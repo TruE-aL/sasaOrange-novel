@@ -9,7 +9,6 @@ docs/.vitepress/cache/
 docs/index.md
 docs/novels/
 docs/public/novels/
-docs/.vitepress/novels.json
 
 # Cloudflare wrangler 的本地缓存
 .wrangler/

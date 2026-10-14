@@ -6,13 +6,15 @@
 ## 日常使用
 
 ```bash
-npm run docs:dev      # 本地预览（会先自动同步「正文」），默认 http://localhost:5173
+npm run docs:dev      # 本地预览（自动同步 + 监听「正文」），默认 http://localhost:5173
 npm run docs:build    # 构建静态站到 docs/.vitepress/dist
 npm run docs:preview  # 预览已构建的站点
 npm run docs:sync     # 只做同步，不启动服务
 ```
 
-写完新章节后跑 `docs:dev` 或 `docs:build` 就会自动同步，不需要手动复制文件。
+`docs:dev` 会先同步一次，然后**一直监听「正文」**：改文字即时生效；
+新增或删除章节时会自动重启一次开发服务器（VitePress 的本地搜索索引在页面增删时会出错，
+重启可以绕开这个上游问题）。构建前也一定会同步，不需要手动复制文件。
 
 ## 目录结构（一个文件夹 = 一部作品）
 
@@ -37,8 +39,9 @@ npm run docs:sync     # 只做同步，不启动服务
 | `正文/<作品>/cover.png` | `docs/public/novels/<slug>/cover.jpg`，已压缩到 900px 宽 |
 | 全部作品 | `/` 书架首页 |
 
-`docs/novels/`、`docs/public/novels/`、`docs/index.md`、`docs/.vitepress/novels.json`
-都是生成物，重新同步会覆盖，别直接改。
+`docs/novels/`、`docs/public/novels/`、`docs/index.md` 都是生成物，重新同步会覆盖，别直接改。
+站点的目录、上一章/下一章、字数统计都由 `scripts/lib/novels.mjs` 直接读「正文」得出，
+没有中间产物，所以不会出现「目录和正文不一致」的情况。
 
 ## 加一部新作品
 

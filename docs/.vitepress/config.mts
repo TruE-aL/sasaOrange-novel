@@ -1,53 +1,18 @@
-import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vitepress'
+import { loadNovels, type Chapter } from '../../scripts/lib/novels.mjs'
 
 const configDir = import.meta.dirname || path.dirname(fileURLToPath(import.meta.url))
 
-type Chapter = {
-  label: string
-  title: string
-  href: string
-  listText: string
-  pagerText: string
-}
+// 直接读「正文」，不经过任何中间产物：
+// 目录和「上一章 / 下一章」都由同一份数据生成，不存在两边不同步的可能。
+const contentDir = path.resolve(configDir, '../../正文')
+const { site, novels } = loadNovels(contentDir)
 
-type Novel = {
-  slug: string
-  title: string
-  author: string
-  tagline: string
-  description: string
-  status: string
-  home: string
-  licensePage: string
-  cover: string
-  chapters: Chapter[]
-  stats: { chapters: number; words: number; extras: string[] }
+if (novels.length === 0) {
+  console.warn(`[vitepress] 在 ${contentDir} 里没有读到作品文件夹，导航会是空的。`)
 }
-
-type Manifest = {
-  site: { title: string; author: string; tagline: string }
-  novels: Novel[]
-}
-
-/**
- * 作品清单由 `npm run docs:sync` 从「正文」生成（docs/.vitepress/novels.json）。
- * 章节顺序、章节号、字数这些都在同步脚本里算好，这里只负责排版成站点。
- */
-function readManifest(): Manifest {
-  try {
-    return JSON.parse(fs.readFileSync(path.resolve(configDir, 'novels.json'), 'utf-8'))
-  } catch {
-    console.warn(
-      '[vitepress] 还没找到 docs/.vitepress/novels.json，导航会是空的。先跑一次 `npm run docs:sync`。'
-    )
-    return { site: { title: '小说集', author: '', tagline: '' }, novels: [] }
-  }
-}
-
-const { site, novels } = readManifest()
 
 const escapeHtml = (value: string) => {
   const map: Record<string, string> = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
@@ -64,7 +29,8 @@ const tocText = (chapter: Chapter) =>
 
 /**
  * 每部作品一套侧边栏，按路径前缀生效：
- * 在读某本书时只看到这本书的目录，书架首页没有侧边栏。
+ * 读某本书时只看到这本书的目录，书架首页没有侧边栏。
+ * 「上一章 / 下一章」也是按这份目录的顺序算的。
  */
 const sidebar = Object.fromEntries(
   novels.map((novel) => [
@@ -79,7 +45,7 @@ const sidebar = Object.fromEntries(
         }))
       },
       ...(novel.licensePage
-        ? [{ text: '关于', items: [{ text: '作品许可', link: novel.licensePage }] }]
+        ? [{ text: '关于', items: [{ text: '作品许可', link: novel.licensePage, docFooterText: '作品许可' }] }]
         : [])
     ]
   ])
