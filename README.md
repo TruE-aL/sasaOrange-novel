@@ -182,6 +182,19 @@ VitePress 会把这些图片打包进站点。
 首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
 `docs/.vitepress/theme/ReaderSettings.ts` 的 `DEFAULTS` 里。
 
+## 阅读进度
+
+每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
+数据存在 localStorage 的 `novel-progress` 里）。几条规则：
+
+- 只记**正文页**：书架首页、作品许可页这些不记
+- 点「上一章 / 下一章」进入的新章节**不恢复**，从开头读（那种情况读者通常想看新内容）
+- 带 `#锚点` 的链接不恢复，交给 VitePress 自己定位
+- 已经滚到页尾（读完了）就清掉记录，下次从开头开始
+- 记录最多保留 120 章，超出丢掉最早的
+
+想清空所有进度：浏览器控制台里 `localStorage.removeItem('novel-progress')`。
+
 ## 阅读字体
 
 「宋体」用的是自托管的思源宋体（Noto Serif CJK SC）子集：
