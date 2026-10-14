@@ -121,10 +121,12 @@ function syncIcon(site) {
 
 /** 书架首页 */
 function homePage(novels, site) {
-  // 首页只在 site.json 里写了 greeting 时放一句大字问候，否则直接开始分组书架
+  // 首页大字来自 site.json 的 heroTitle（可以留空，留空就直接开始分组书架）
   const lines = ['---', 'layout: home']
-  if (site.greeting) {
-    lines.push('hero:', `  name: ${yaml(site.greeting)}`)
+  if (site.heroTitle || site.heroSubtitle) {
+    lines.push('hero:')
+    if (site.heroTitle) lines.push(`  name: ${yaml(site.heroTitle)}`)
+    if (site.heroSubtitle) lines.push(`  tagline: ${yaml(site.heroSubtitle)}`)
   }
   lines.push('---', '')
 

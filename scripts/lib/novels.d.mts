@@ -34,7 +34,8 @@ export type Site = {
   title: string
   author: string
   icon?: string
-  greeting?: string
+  heroTitle?: string
+  heroSubtitle?: string
   tagline: string
   footer?: { message?: string; copyright?: string }
   sections: Section[]
