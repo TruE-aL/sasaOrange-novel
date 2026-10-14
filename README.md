@@ -22,7 +22,7 @@ npm run docs:sync     # 只更新生成的书架页/作品页，不启动服务
 
 ```
 docs/
-  site.json                     站点级设置：站名、作者、摘要、页脚文案、书架分组
+  site.json                     站点级设置：站名、作者、摘要、图标、页脚文案、书架分组
   index.md                      书架首页（生成物）
   novels/
     _模板/                       新作品从这里复制（下划线开头，不进站点）
@@ -32,9 +32,17 @@ docs/
       00-作品许可证（网站）.md    可选：许可声明，网址固定为 <作品>/license
       cover.png                 可选：封面
     邓煜语录/                    正文、图片、原始 PDF 都放在一起
-  public/novels/<slug>/cover.jpg 封面压缩产物（生成物）
+  public/
+    favicon.png                 站点图标 64×64（由 site.json 的 icon 生成，已入库）
+    apple-touch-icon.png        iOS 加到主屏用 180×180（同上）
+    novels/<slug>/cover.jpg     封面压缩产物（生成物）
   .vitepress/                    站点配置与主题
 ```
+
+站点图标：把图片放到项目根目录，再让 `docs/site.json` 的 `icon` 指向它
+（现在是 `"icon": "橙子.png"`），同步时会生成上面两个尺寸的图标。
+生成的这两个文件**是入库的**——这样在没有 ImageMagick 的构建环境（例如 Cloudflare Pages）
+里也不会缺图标；换了源图之后记得把重新生成的文件一起提交。
 
 几点说明：
 
