@@ -354,10 +354,9 @@ html.theme-green.dark {
   background-image: linear-gradient(180deg, var(--novel-hero-wash), transparent 72%);
 }
 
-/* 首页只有一句问候、没有配图时，让它居中，别贴左边 */
-.VPHome .VPHero:not(.has-image) .main {
-  text-align: center;
-}
+/* 首页 hero 的大字和小字统一左对齐。
+   注意 `.name` 是 flex 项且宽度 fit-content，靠 text-align 是没法把它居中的，
+   要让两行都居中得改 .heading 的 align-items，这里按需求保持左对齐。 */
 
 /* 主按钮：一点投影，悬停微微上浮 */
 .VPButton.brand {

@@ -67,6 +67,26 @@ function restartVitePress(reason) {
 sync()
 let signature = structureSignature()
 
+/**
+ * 「正文」发生变化：先同步，再决定要不要重启。
+ * - 章节增删：必须重启（VitePress 的本地搜索索引在页面增删时会出错）
+ * - 改了 novel.json：侧边栏、顶栏书名这些是配置在启动时读的，也得重启
+ * - 只改正文文字：交给 VitePress 自己热更新
+ */
+function onContentChange(filename) {
+  if (filename.endsWith('.json')) {
+    sync()
+    restartVitePress('作品信息有改动')
+    return
+  }
+  sync()
+  const next = structureSignature()
+  if (next !== signature) {
+    signature = next
+    restartVitePress('章节有增删')
+  }
+}
+
 if (fs.existsSync(contentDir)) {
   let timer = null
   try {
@@ -77,18 +97,26 @@ if (fs.existsSync(contentDir)) {
       if (timer) clearTimeout(timer)
       timer = setTimeout(() => {
         log(`「正文/${filename}」有改动，重新同步`)
-        sync()
-        const next = structureSignature()
-        if (next !== signature) {
-          signature = next
-          restartVitePress('章节有增删')
-        }
+        onContentChange(filename)
       }, 400)
     })
     log('已开始监听「正文」，改动会自动同步进站点')
   } catch (error) {
     log(`监听「正文」失败：${error.message}`)
   }
+}
+
+// 站点设置（站名、首页文案、页脚…）也是配置在启动时读的，改了要重启才生效
+if (fs.existsSync(siteFile)) {
+  let siteTimer = null
+  fs.watch(siteFile, () => {
+    if (siteTimer) clearTimeout(siteTimer)
+    siteTimer = setTimeout(() => {
+      log('「site.json」有改动')
+      sync()
+      restartVitePress('站点设置有改动')
+    }, 400)
+  })
 }
 
 startVitePress()
