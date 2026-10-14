@@ -1,0 +1,417 @@
+/**
+ * 《持续存在》阅读站主题
+ *
+ * 两套配色，读者可以随时切换：
+ *   暖黄（默认，护眼）—— 直接写在 :root / .dark 里
+ *   淡蓝            —— 用 html.theme-blue / html.theme-blue.dark 覆盖
+ *
+ * 切换按钮在顶栏（手机在菜单展开后的底部），选择记在 localStorage: novel-color-scheme。
+ * 默认走暖黄，所以没有 theme-blue 这个 class 时就是暖色。
+ *
+ * 1. 暖黄色系（默认）
+ * 2. 淡蓝色系（可切换）
+ * 3. 配色切换按钮
+ * 4. 首页
+ * 5. 导航与目录
+ * 6. 小说正文排版
+ */
+
+/* ============================================================
+   1. 暖黄色系（默认）
+   米黄底 + 琥珀色强调，长时间阅读不刺眼
+   ============================================================ */
+
+:root {
+  /* 背景：纸感的米黄，导航与侧边栏再深一档 */
+  --vp-c-bg: #fdfaf3;
+  --vp-c-bg-alt: #f7f0e2;
+  --vp-c-bg-soft: #f7f0e2;
+  --vp-c-bg-elv: #fffdf8;
+
+  /* 分隔线 */
+  --vp-c-border: #e8dfcb;
+  --vp-c-divider: #e8dfcb;
+  --vp-c-gutter: #f2ebdc;
+
+  /* 文字：暖褐色，比纯黑柔和 */
+  --vp-c-text-1: #3d3529;
+  --vp-c-text-2: #6b5f4d;
+  --vp-c-text-3: #75684f;
+
+  /* 主题色：琥珀 */
+  --vp-c-brand-1: #8a5a18;
+  --vp-c-brand-2: #8a5a18;
+  --vp-c-brand-3: #9c6420;
+  --vp-c-brand-soft: rgba(168, 106, 21, 0.12);
+  --vp-c-default-soft: rgba(168, 106, 21, 0.1);
+
+  /* 代码 */
+  --vp-code-block-bg: #f6efe0;
+  --vp-code-bg: rgba(168, 106, 21, 0.1);
+
+  /* 自定义变量：首屏渐变、选中文字 */
+  --novel-hero-wash: rgba(217, 164, 92, 0.16);
+  --novel-selection: rgba(217, 164, 92, 0.35);
+
+  /* 首页大标题的渐变色 */
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: linear-gradient(120deg, #8a5a18 25%, #d9a45c);
+
+  /* 次级按钮：暖色描边 */
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-border: #e8dfcb;
+  --vp-button-alt-text: #8a5a18;
+  --vp-button-alt-hover-bg: rgba(168, 106, 21, 0.1);
+  --vp-button-alt-hover-border: #c9954a;
+  --vp-button-alt-hover-text: #8a5a18;
+}
+
+/* 暖色的深色模式：深棕底 + 浅琥珀 */
+.dark {
+  --vp-c-bg: #1c1812;
+  --vp-c-bg-alt: #17140f;
+  --vp-c-bg-soft: #241f18;
+  --vp-c-bg-elv: #241f18;
+
+  --vp-c-border: #3a3226;
+  --vp-c-divider: #332c22;
+  --vp-c-gutter: #121009;
+
+  --vp-c-text-1: #ece2d0;
+  --vp-c-text-2: #b5a68d;
+  --vp-c-text-3: #9c8e77;
+
+  --vp-c-brand-1: #e0b877;
+  --vp-c-brand-2: #ecc78d;
+  --vp-c-brand-3: #d9a45c;
+  --vp-c-brand-soft: rgba(224, 184, 119, 0.16);
+  --vp-c-default-soft: rgba(224, 184, 119, 0.14);
+
+  --vp-code-block-bg: #241f18;
+  --vp-code-bg: rgba(224, 184, 119, 0.14);
+
+  --novel-hero-wash: rgba(224, 184, 119, 0.1);
+  --novel-selection: rgba(217, 164, 92, 0.3);
+
+  --vp-home-hero-name-background: linear-gradient(120deg, #e0b877 25%, #a8763a);
+
+  /* 深色下按钮是浅琥珀底，文字要用深色才清楚 */
+  --vp-button-brand-text: #1c1812;
+  --vp-button-brand-hover-text: #1c1812;
+  --vp-button-brand-active-text: #1c1812;
+
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-border: #3a3226;
+  --vp-button-alt-text: #ece2d0;
+  --vp-button-alt-hover-bg: rgba(224, 184, 119, 0.14);
+  --vp-button-alt-hover-border: #e0b877;
+  --vp-button-alt-hover-text: #ece2d0;
+}
+
+/* ============================================================
+   2. 淡蓝色系（可切换）
+   配色沿用作品许可页的淡蓝，切过去时和许可卡片是一套
+   ============================================================ */
+
+html.theme-blue {
+  --novel-blue-50: #f6fbff;
+  --novel-blue-100: #eaf4fc;
+  --novel-blue-200: #d8e6f0;
+  --novel-blue-400: #6bb0dd;
+  --novel-blue-500: #4a90c2;
+  --novel-blue-600: #3f7ca9;
+  --novel-blue-700: #2c5f8a;
+
+  --vp-c-bg: var(--novel-blue-50);
+  --vp-c-bg-alt: var(--novel-blue-100);
+  --vp-c-bg-soft: var(--novel-blue-100);
+  --vp-c-bg-elv: #ffffff;
+
+  --vp-c-border: var(--novel-blue-200);
+  --vp-c-divider: var(--novel-blue-200);
+  --vp-c-gutter: var(--novel-blue-100);
+
+  --vp-c-text-1: #2d3e50;
+  --vp-c-text-2: #4f6b85;
+  --vp-c-text-3: #5c728a;
+
+  --vp-c-brand-1: var(--novel-blue-700);
+  --vp-c-brand-2: #356f9d;
+  --vp-c-brand-3: var(--novel-blue-600);
+  --vp-c-brand-soft: rgba(74, 144, 194, 0.14);
+  --vp-c-default-soft: rgba(74, 144, 194, 0.12);
+
+  --vp-code-block-bg: var(--novel-blue-100);
+  --vp-code-bg: rgba(74, 144, 194, 0.12);
+
+  --novel-hero-wash: rgba(74, 144, 194, 0.1);
+  --novel-selection: rgba(74, 144, 194, 0.26);
+
+  --vp-home-hero-name-background: linear-gradient(120deg, var(--novel-blue-700) 25%, var(--novel-blue-400));
+
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-border: var(--novel-blue-200);
+  --vp-button-alt-text: var(--novel-blue-700);
+  --vp-button-alt-hover-bg: rgba(74, 144, 194, 0.14);
+  --vp-button-alt-hover-border: var(--novel-blue-500);
+  --vp-button-alt-hover-text: var(--novel-blue-700);
+}
+
+html.theme-blue.dark {
+  --vp-c-bg: #16232e;
+  --vp-c-bg-alt: #131e28;
+  --vp-c-bg-soft: #1b2a36;
+  --vp-c-bg-elv: #1e3040;
+
+  --vp-c-border: #2a4155;
+  --vp-c-divider: #24394a;
+  --vp-c-gutter: #0f1922;
+
+  --vp-c-text-1: #d6e4ef;
+  --vp-c-text-2: #93aabd;
+  --vp-c-text-3: #8ba3b8;
+
+  --vp-c-brand-1: #8ec5e8;
+  --vp-c-brand-2: #3f7ca9;
+  --vp-c-brand-3: #2f6b9a;
+  --vp-c-brand-soft: rgba(142, 197, 232, 0.16);
+  --vp-c-default-soft: rgba(142, 197, 232, 0.14);
+
+  --vp-code-block-bg: #1b2a36;
+  --vp-code-bg: rgba(142, 197, 232, 0.14);
+
+  --novel-hero-wash: rgba(142, 197, 232, 0.08);
+  --novel-selection: rgba(142, 197, 232, 0.28);
+
+  --vp-home-hero-name-background: linear-gradient(120deg, #8ec5e8 25%, var(--novel-blue-500));
+
+  /* 淡蓝深色下按钮底色偏深，字要回到白色 */
+  --vp-button-brand-text: #ffffff;
+  --vp-button-brand-hover-text: #ffffff;
+  --vp-button-brand-active-text: #ffffff;
+  /* 按下时的底色不能用浅蓝（默认会取 brand-1，白字会看不清） */
+  --vp-button-brand-active-bg: #3f7ca9;
+
+  --vp-button-alt-bg: transparent;
+  --vp-button-alt-border: #2a4155;
+  --vp-button-alt-text: #d6e4ef;
+  --vp-button-alt-hover-bg: rgba(142, 197, 232, 0.16);
+  --vp-button-alt-hover-border: #8ec5e8;
+  --vp-button-alt-hover-text: #d6e4ef;
+}
+
+/* 选中文字的颜色跟着色系走 */
+::selection {
+  background-color: var(--novel-selection);
+}
+
+/* ============================================================
+   3. 配色切换按钮
+   两个小圆点：左暖黄、右淡蓝，当前生效的那个带一圈描边
+   ============================================================ */
+
+.novel-scheme-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 14px;
+}
+
+.novel-scheme-switch .label {
+  font-size: 13px;
+  color: var(--vp-c-text-2);
+}
+
+.novel-scheme-switch .swatch {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.novel-scheme-switch .swatch.warm {
+  background: linear-gradient(135deg, #f7ecd7, #c9954a);
+}
+
+.novel-scheme-switch .swatch.blue {
+  background: linear-gradient(135deg, #dcebf7, #4a90c2);
+}
+
+.novel-scheme-switch .swatch:hover {
+  transform: scale(1.1);
+}
+
+.novel-scheme-switch .swatch[aria-pressed='true'] {
+  box-shadow: 0 0 0 2px var(--vp-c-bg), 0 0 0 3.5px var(--vp-c-brand-1);
+}
+
+/* 手机菜单里放在最下面一行 */
+.novel-scheme-switch.is-mobile {
+  margin: 0;
+  padding: 14px 0 6px;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+/* ============================================================
+   4. 首页
+   ============================================================ */
+
+/* 首屏铺一层极淡的主题色，往下渐隐 */
+.VPHero {
+  background-image: linear-gradient(180deg, var(--novel-hero-wash), transparent 72%);
+}
+
+/* 主按钮：一点投影，悬停微微上浮 */
+.VPButton.brand {
+  box-shadow: 0 8px 20px rgba(120, 82, 24, 0.18);
+}
+
+.VPButton.brand:hover {
+  transform: translateY(-1px);
+}
+
+/* 首页「关于」里的引用块，做成主题色卡片 */
+.vp-doc blockquote {
+  margin: 1.2em 0;
+  padding: 0.8em 1.1em;
+  border-left: 3px solid var(--vp-c-brand-2);
+  border-radius: 0 10px 10px 0;
+  background-color: var(--vp-c-brand-soft);
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc blockquote > p {
+  margin: 0.35em 0;
+}
+
+/* ============================================================
+   5. 导航与目录
+   ============================================================ */
+
+/* 目录分组标题「目录」：拉开字距，像书页的栏头 */
+.VPSidebar .VPSidebarItem.level-0 > .item > .text {
+  letter-spacing: 0.14em;
+  color: var(--vp-c-brand-1);
+}
+
+/* 目录项：章节号是小字、淡色的一列，章节名在它右边对齐成一列。
+   用 flex + gap 固定间隔，这样不管章节号是「第1章」还是「第11章」，
+   它们和章节名之间都留得出空隙，不会顶在一起。 */
+.VPSidebar .VPSidebarItem.level-1 .text {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.VPSidebar .VPSidebarItem.level-1 .toc-num {
+  flex: 0 0 auto;
+  min-width: 3.6em;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--vp-c-text-3);
+}
+
+.VPSidebar .VPSidebarItem.level-1 .toc-title {
+  letter-spacing: 0.02em;
+}
+
+/* 章节项：悬停和当前章节都垫一层主题色底色 */
+.VPSidebar .VPSidebarItem.level-1 > .item {
+  margin: 0 -0.5rem;
+  padding: 2px 0.5rem;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.VPSidebar .VPSidebarItem.level-1 > .item:hover {
+  background-color: var(--vp-c-brand-soft);
+}
+
+.VPSidebar .VPSidebarItem.level-1.is-active > .item {
+  background-color: var(--vp-c-brand-soft);
+}
+
+.VPSidebar .VPSidebarItem.level-1.is-active > .item > .link > .text {
+  color: var(--vp-c-brand-1);
+  font-weight: 600;
+}
+
+/* 当前章节的编号也跟着走主题色，但比章节名淡一点 */
+.VPSidebar .VPSidebarItem.level-1.is-active .toc-num {
+  color: var(--vp-c-brand-1);
+  opacity: 0.75;
+}
+
+/* 上一章 / 下一章：悬停时底色变浅 */
+.VPDocFooter .pager-link {
+  transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.VPDocFooter .pager-link:hover {
+  background-color: var(--vp-c-brand-soft);
+}
+
+/* 页脚许可链接 */
+.VPFooter .message a {
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+}
+
+.VPFooter .message a:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================
+   6. 小说正文排版
+   _chapters_ 是 VitePress 给 docs/chapters/ 下页面自动加的类名
+   （形如 `vp-doc _chapters_03-第一章`），所以只影响章节页，
+   不会影响首页和许可页。
+   ============================================================ */
+
+[class*='_chapters_'] {
+  font-size: 17px;
+  line-height: 1.95;
+}
+
+/* 中文段落首行缩进两格 */
+[class*='_chapters_'] p {
+  margin: 0.8em 0;
+  text-indent: 2em;
+}
+
+/* 章名居中，下方一道主题色短线 */
+[class*='_chapters_'] > h1 {
+  text-align: center;
+  font-size: 1.9em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0.5em 0 2.2em;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+[class*='_chapters_'] > h1::after {
+  content: '';
+  display: block;
+  width: 3em;
+  height: 3px;
+  margin: 0.7em auto 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
+}
+
+/* 正文里的行内代码（如 [INFO] 日志）不参与首行缩进，避免断行错位 */
+[class*='_chapters_'] code {
+  text-indent: 0;
+  white-space: nowrap;
+}
+
+/* 手机上字号略收一点，行距不变 */
+@media (max-width: 640px) {
+  [class*='_chapters_'] {
+    font-size: 16px;
+  }
+}

@@ -3,19 +3,23 @@
 layout: home
 
 hero:
-  name: "Novels"
-  text: "我的小说"
-  tagline: "感谢你的阅读"
+  name: 持续存在
+  tagline: 如果痛苦是真实的代价，你愿意拿虚假的安慰来换吗？
   actions:
     - theme: brand
       text: 开始阅读
       link: /chapters/01-导语
-
-#features:
-#  - title: Feature A
-#    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-#  - title: Feature B
-#    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
-#  - title: Feature C
-#    details: Lorem ipsum dolor sit amet, consectetur adipiscing elit
+    - theme: alt
+      text: 作品许可
+      link: /license
 ---
+
+## 关于
+
+> 这是一个关于失去、执念与告别的故事。
+>
+> ——《持续存在》
+
+正文共 14 章，另有导语、序章、尾声与后记，约 2.9 万字。
+
+从左边目录（手机上是「章节目录」）进入任意一章；每章底部都有「上一章 / 下一章」，可以一直读下去。

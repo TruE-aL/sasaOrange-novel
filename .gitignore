@@ -5,6 +5,14 @@ node_modules/
 docs/.vitepress/dist/
 docs/.vitepress/cache/
 
+# 由「正文」同步生成的站点内容（源文件在 正文/）
+docs/chapters/
+docs/license.md
+docs/public/cover.jpg
+
+# Cloudflare wrangler 的本地缓存
+.wrangler/
+
 # 日志
 *.log
 npm-debug.log*
