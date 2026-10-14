@@ -405,10 +405,15 @@ html.theme-blue.dark {
   background: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
 }
 
-/* 正文里的行内代码（如 [INFO] 日志）不参与首行缩进，避免断行错位 */
-.novel-chapter .vp-doc code {
+/* 行内代码（如 [INFO] 日志）：不参与首行缩进，并且允许折行。
+   原来是 nowrap，短代码确实不会被拆开，但像
+   `[INFO]ID: Homer-a291d4 意识涌现模型已销毁，格式化存储栈已归还。`
+   这种整行都是代码的日志会直接顶出手机屏幕，所以改成可以换行，
+   长串（ID、路径）在必要时才断开。只作用于行内代码，代码块不受影响。 */
+.novel-chapter .vp-doc :not(pre) > code {
   text-indent: 0;
-  white-space: nowrap;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 /* 手机上字号略收一点，行距不变 */
