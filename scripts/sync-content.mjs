@@ -122,7 +122,12 @@ function homePage(novels, site) {
     for (const novel of group.items) {
       const description = novel.tagline || novel.description
       lines.push(`  <a class="shelf-card" href="${novel.start}">`)
-      lines.push(`    <span class="shelf-title">${escapeHtml(novel.title)}</span>`)
+      lines.push('    <span class="shelf-head">')
+      lines.push(
+        `      <span class="shelf-mark" aria-hidden="true">${escapeHtml(initialOf(novel.title))}</span>`
+      )
+      lines.push(`      <span class="shelf-title">${escapeHtml(novel.title)}</span>`)
+      lines.push('    </span>')
       lines.push(`    <span class="shelf-meta">${escapeHtml(cardMeta(novel, site))}</span>`)
       if (description) {
         lines.push(`    <span class="shelf-desc">${escapeHtml(description)}</span>`)
@@ -134,6 +139,11 @@ function homePage(novels, site) {
   }
 
   return lines.join('\n')
+}
+
+/** 取书名第一个字，用在卡片左上角的渐变书脊上 */
+function initialOf(title) {
+  return Array.from(String(title).trim())[0] || '书'
 }
 
 /** 卡片上那行小字：作者（非本人作品）· 状态 · 章数/篇数 · 字数 */
