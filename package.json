@@ -4,6 +4,7 @@
   },
   "scripts": {
     "docs:sync": "node scripts/sync-content.mjs",
+    "docs:clean": "node scripts/clean.mjs",
     "docs:dev": "node scripts/dev.mjs",
     "docs:build": "npm run docs:sync && vitepress build docs",
     "docs:preview": "vitepress preview docs",

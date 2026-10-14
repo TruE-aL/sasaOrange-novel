@@ -11,7 +11,13 @@ export default {
   extends: DefaultTheme,
   enhanceApp({ router }: { router: import('vue-router').Router }) {
     // 只在浏览器里跑：记住每章读到哪、下次接着读
-    if (typeof window !== 'undefined') installReadingProgress(router)
+    if (typeof window === 'undefined') return
+    try {
+      installReadingProgress(router)
+    } catch (error) {
+      // 阅读进度只是个增强功能，绝不该因为它让整站白屏
+      console.error('[novel] 阅读进度初始化失败：', error)
+    }
   },
   Layout() {
     return h(DefaultTheme.Layout, null, {

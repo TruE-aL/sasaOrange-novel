@@ -66,6 +66,20 @@ function scrollTop() {
 }
 
 export function installReadingProgress(router: Router) {
+  /**
+   * 所有逻辑都包一层：这是全局增强，任何一种意外都不该让整站白屏，
+   * 更不能让路由守卫抛错（守卫抛错会中断导航，首屏就会是一片空白）。
+   */
+  const safe =
+    <A extends unknown[]>(fn: (...args: A) => void) =>
+    (...args: A) => {
+      try {
+        fn(...args)
+      } catch (error) {
+        console.error('[novel] 阅读进度出错：', error)
+      }
+    }
+
   let currentPath = router.currentRoute.value.path
   let pending: Entry | null = null
   let saveTimer: ReturnType<typeof setTimeout> | null = null
@@ -103,17 +117,23 @@ export function installReadingProgress(router: Router) {
     saveTimer = setTimeout(flush, 300)
   }
 
-  window.addEventListener('scroll', onScroll, { passive: true })
-  window.addEventListener('beforeunload', () => {
-    capture()
-    flush()
-  })
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
+  window.addEventListener('scroll', safe(onScroll), { passive: true })
+  window.addEventListener(
+    'beforeunload',
+    safe(() => {
       capture()
       flush()
-    }
-  })
+    })
+  )
+  document.addEventListener(
+    'visibilitychange',
+    safe(() => {
+      if (document.visibilityState === 'hidden') {
+        capture()
+        flush()
+      }
+    })
+  )
 
   // 点「上一章 / 下一章」时，下一页不要恢复旧位置
   document.addEventListener(
@@ -126,10 +146,12 @@ export function installReadingProgress(router: Router) {
   )
 
   /** 离开这一页前先把位置存好（SPA 跳转不会触发 beforeunload） */
-  router.beforeEach(() => {
-    capture()
-    flush()
-  })
+  router.beforeEach(
+    safe(() => {
+      capture()
+      flush()
+    })
+  )
 
   const restore = (path: string) => {
     if (lastRestore.path === path && Date.now() - lastRestore.at < 800) return
@@ -152,13 +174,15 @@ export function installReadingProgress(router: Router) {
     requestAnimationFrame(() => setTimeout(attempt, 60))
   }
 
-  router.afterEach((to) => {
-    currentPath = to.path
-    const skip = skipNext || Boolean(to.hash)
-    skipNext = false
-    if (!skip) restore(to.path)
-  })
+  router.afterEach(
+    safe((to: { path: string; hash?: string }) => {
+      currentPath = to.path
+      const skip = skipNext || Boolean(to.hash)
+      skipNext = false
+      if (!skip) restore(to.path)
+    })
+  )
 
   // 首屏（刷新 / 直接输网址进来）时 afterEach 不一定触发，补一次
-  setTimeout(() => restore(router.currentRoute.value.path), 120)
+  setTimeout(safe(() => restore(router.currentRoute.value.path)), 120)
 }

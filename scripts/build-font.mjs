@@ -12,13 +12,15 @@
  * `pip install fonttools brotli` 就能装好。
  */
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const output = path.join(root, 'docs/public/fonts/noto-serif-sc-subset.woff2')
-const charsFile = path.join(root, 'docs/.vitepress/cache/font-chars.txt')
+// 放系统临时目录：Vite 的缓存目录留给 Vite 自己用
+const charsFile = path.join(os.tmpdir(), 'novel-font-chars.txt')
 
 /** 系统里可能存在的思源宋体（Android 的 Noto Serif CJK / 常见的本地字体目录） */
 const CANDIDATES = [
