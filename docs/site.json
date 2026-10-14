@@ -1,5 +1,17 @@
 {
   "title": "sasaOrange 的小说",
   "author": "sasaOrange",
-  "tagline": "一个存放原创小说的地方"
+  "tagline": "原创小说，以及一些我想推荐的书",
+  "sections": [
+    {
+      "id": "original",
+      "title": "我的作品",
+      "description": "我写的原创小说"
+    },
+    {
+      "id": "recommend",
+      "title": "个人推荐书籍",
+      "description": "别人写的书，我读过之后想推荐给你"
+    }
+  ]
 }

@@ -16,7 +16,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { loadNovels, readText, yaml } from './lib/novels.mjs'
+import { escapeHtml, loadNovels, readText, yaml } from './lib/novels.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const docsDir = path.join(root, 'docs')
@@ -52,7 +52,7 @@ function writeGenerated(file, content) {
 fs.mkdirSync(publicNovelsDir, { recursive: true })
 
 for (const novel of novels) {
-  writeGenerated(path.join(novel.sourceDir, 'index.md'), landingPage(novel))
+  writeGenerated(path.join(novel.sourceDir, 'index.md'), landingPage(novel, site))
 
   if (novel.cover) {
     const coverDir = path.join(publicNovelsDir, novel.slug)
@@ -84,7 +84,7 @@ log(`书架：${novels.length} 部作品`)
    ============================================================ */
 
 /** 作品首页 */
-function landingPage(novel) {
+function landingPage(novel, site) {
   const { stats } = novel
   const lines = ['---', `title: ${yaml(novel.title)}`, 'pageClass: novel-home', '---', '']
   lines.push(`# ${novel.title}`, '')
@@ -92,6 +92,7 @@ function landingPage(novel) {
   if (novel.description) lines.push(novel.description, '')
 
   const metaParts = []
+  if (novel.author && novel.author !== site.author) metaParts.push(`作者：${novel.author}`)
   if (novel.status) metaParts.push(`**${novel.status}**`)
   if (stats.chapters) metaParts.push(`${stats.chapters} 章`)
   if (stats.chapters === 0 && stats.extras.length) metaParts.push(`${stats.extras.length} 篇`)
@@ -128,27 +129,58 @@ function homePage(novels, site) {
       `      link: ${first.home}`
     )
   }
-  lines.push('', 'features:')
-  for (const novel of novels) {
-    const parts = []
-    if (novel.status) parts.push(novel.status)
-    if (novel.stats.chapters) {
-      parts.push(`${novel.stats.chapters} 章`)
-    } else if (novel.stats.extras.length) {
-      parts.push(`${novel.stats.extras.length} 篇`)
-    }
-    parts.push(`约 ${(novel.stats.words / 10000).toFixed(1)} 万字`)
-    const details = [parts.join(' · '), novel.tagline || novel.description]
-      .filter(Boolean)
-      .join('<br>')
-    lines.push(`  - title: ${yaml(novel.title)}`)
-    lines.push(`    details: ${yaml(details)}`)
-    lines.push(`    link: ${novel.home}`)
-    lines.push('    linkText: 开始阅读')
-  }
   lines.push('---', '')
 
+  // 按 site.json 里的 sections 分组，每组一段标题 + 卡片
+  const groups = site.sections
+    .map((section) => ({
+      title: section.title,
+      description: section.description || '',
+      items: novels.filter((novel) => novel.category === section.id)
+    }))
+    .filter((group) => group.items.length > 0)
+
+  // novel.json 里写了没声明过的 category，兜个底，别让它从书架上消失
+  const declared = new Set(site.sections.map((section) => section.id))
+  const others = novels.filter((novel) => !declared.has(novel.category))
+  if (others.length > 0) {
+    groups.push({ title: '其他', description: '', items: others })
+  }
+
+  for (const group of groups) {
+    lines.push(`## ${group.title}`, '')
+    if (group.description) lines.push(group.description, '')
+    // 卡片是原生 HTML：一行一个，中间不留空行，markdown 会整段原样输出
+    lines.push('<div class="shelf-grid">')
+    for (const novel of group.items) {
+      const description = novel.tagline || novel.description
+      lines.push(`  <a class="shelf-card" href="${novel.home}">`)
+      lines.push(`    <span class="shelf-title">${escapeHtml(novel.title)}</span>`)
+      lines.push(`    <span class="shelf-meta">${escapeHtml(cardMeta(novel, site))}</span>`)
+      if (description) {
+        lines.push(`    <span class="shelf-desc">${escapeHtml(description)}</span>`)
+      }
+      lines.push('    <span class="shelf-more">开始阅读 →</span>')
+      lines.push('  </a>')
+    }
+    lines.push('</div>', '')
+  }
+
   return lines.join('\n')
+}
+
+/** 卡片上那行小字：作者（非本人作品）· 状态 · 章数/篇数 · 字数 */
+function cardMeta(novel, site) {
+  const parts = []
+  if (novel.author && novel.author !== site.author) parts.push(`${novel.author} 著`)
+  if (novel.status) parts.push(novel.status)
+  if (novel.stats.chapters) {
+    parts.push(`${novel.stats.chapters} 章`)
+  } else if (novel.stats.extras.length) {
+    parts.push(`${novel.stats.extras.length} 篇`)
+  }
+  parts.push(`约 ${(novel.stats.words / 10000).toFixed(1)} 万字`)
+  return parts.join(' · ')
 }
 
 /** 用 ImageMagick 把封面缩到 900px 宽、转成 jpg */

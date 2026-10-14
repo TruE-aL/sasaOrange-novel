@@ -28,6 +28,11 @@ export const readJson = (file, fallback) => {
 /** 生成 YAML 里安全的字符串；JSON 的双引号写法本身就是合法 YAML */
 export const yaml = (value) => JSON.stringify(value)
 
+export const escapeHtml = (value) => {
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }
+  return String(value).replace(/[&<>"]/g, (char) => map[char])
+}
+
 const stripQuotes = (value) => value.trim().replace(/^['"]|['"]$/g, '')
 const prefixOf = (file) => (file.match(/^(\d+)/) || [])[1] || ''
 export const naturalSort = (a, b) => a.localeCompare(b, 'zh-CN', { numeric: true })
@@ -123,18 +128,29 @@ function countWords(raw) {
 
 /* ---------------- 对外接口 ---------------- */
 
+/** 书架分组：site.json 里可以改标题与顺序，novel.json 用 category 指定归属 */
+const DEFAULT_SECTIONS = [
+  { id: 'original', title: '我的作品', description: '我写的原创小说' },
+  { id: 'recommend', title: '个人推荐书籍', description: '别人写的，我读过并想推荐' }
+]
+
 /**
- * 读取「正文」目录下的全部作品。
+ * 读取作品目录下的全部作品。
  * 一个子文件夹 = 一部作品；下划线或点开头的文件夹会被跳过（例如 _模板）。
  */
 export function loadNovels(contentDir, options = {}) {
   const siteFile = options.siteFile || path.join(contentDir, 'site.json')
-  const site = {
+  const siteConfig = {
     title: '小说集',
     author: '',
     tagline: '',
     ...readJson(siteFile, {})
   }
+  const sections =
+    Array.isArray(siteConfig.sections) && siteConfig.sections.length > 0
+      ? siteConfig.sections
+      : DEFAULT_SECTIONS
+  const site = { ...siteConfig, sections }
 
   const folders = fs.existsSync(contentDir)
     ? fs
@@ -198,6 +214,8 @@ export function loadNovels(contentDir, options = {}) {
       slug,
       base,
       title,
+      // 分组：novel.json 里写 category，缺省属于第一组（原创作品）
+      category: meta.category || sections[0].id,
       author: meta.author || site.author || '',
       tagline: meta.tagline || '',
       description: meta.description || '',

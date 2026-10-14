@@ -422,6 +422,60 @@ html.theme-blue.dark {
    7. 作品首页（/novels/<slug>/）
    ============================================================ */
 
+/* 书架卡片（首页按分组排出的一张张书卡）。
+   卡片在 .VPHomeContent.vp-doc 里，默认的 `.vp-doc a` 会给链接加下划线，
+   所以这里的选择器都带上 .vp-doc 前缀提高优先级。 */
+.vp-doc .shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin: 1.2em 0 2.6em;
+}
+
+.vp-doc .shelf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px 20px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  background-color: var(--vp-c-bg-elv);
+  font-weight: 400;
+  text-decoration: none;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.vp-doc .shelf-card:hover {
+  border-color: var(--vp-c-brand-2);
+  box-shadow: 0 10px 24px rgba(120, 82, 24, 0.12);
+  transform: translateY(-2px);
+}
+
+.vp-doc .shelf-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc .shelf-meta {
+  font-size: 12.5px;
+  color: var(--vp-c-text-3);
+}
+
+.vp-doc .shelf-desc {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--vp-c-text-2);
+}
+
+.vp-doc .shelf-more {
+  margin-top: auto;
+  padding-top: 6px;
+  font-size: 13px;
+  color: var(--vp-c-brand-1);
+  text-decoration: none;
+}
+
 .novel-home .vp-doc .novel-actions {
   display: flex;
   flex-wrap: wrap;
