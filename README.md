@@ -67,7 +67,28 @@ title: 思念报复
 `:root` / `.dark` 是暖黄，`html.theme-blue` / `html.theme-blue.dark` 是淡蓝。
 想换默认色系，改 `docs/.vitepress/config.mts` 里 `head` 那段防闪烁脚本即可。
 
+## 首页的章数与字数
+
+首页那句「正文共 14 章，另有导语、序章、尾声、后记，约 2.9 万字」是 `docs/index.md` 里的
+`<NovelStats />` 组件渲染的，数字在构建时由 `config.mts` 从 `docs/chapters` 统计后注入，
+汉字总数不含标题行。写多少章、多少字都不用手动改，重新构建即可。
+
 ## 部署
 
-`docs/wrangler.toml` 已指向构建输出目录，用 Cloudflare Pages 的话在 `docs/` 目录下执行
-`npx wrangler pages deploy` 即可。
+项目根目录的 `wrangler.toml` 里已经写好 Cloudflare Pages 的配置：
+
+```toml
+name = "sasaorange-novel"                  # 决定默认域名 sasaorange-novel.pages.dev
+pages_build_output_dir = "docs/.vitepress/dist"
+```
+
+两种发布方式：
+
+1. **本地发布**：`npx wrangler login` 登录一次，然后 `npm run docs:deploy`
+   （等于 `npm run docs:build && npx wrangler pages deploy`）。
+   首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
+2. **Pages 连 Git 仓库**：在 Cloudflare 控制台选构建命令 `npm run docs:build`、
+   输出目录 `docs/.vitepress/dist`。这种方式下构建环境没有 ImageMagick，
+   同步脚本会跳过封面压缩并打印一行提示，不影响构建。
+
+`name` 决定了默认域名，首次部署后不能改，想换的话在部署前改。

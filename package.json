@@ -6,6 +6,7 @@
     "docs:sync": "node scripts/sync-content.mjs",
     "docs:dev": "npm run docs:sync && vitepress dev docs",
     "docs:build": "npm run docs:sync && vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "docs:preview": "vitepress preview docs",
+    "docs:deploy": "npm run docs:build && npx wrangler pages deploy"
   }
 }

@@ -152,21 +152,20 @@ function pagerText(file: string, index: number) {
  * 侧边栏的顺序就是「上一章 / 下一章」的顺序：上一章 = 上一个 md 文件，下一章 = 下一个 md 文件。
  * 注意：docs/chapters 由 `npm run docs:sync` 从「正文」同步而来，正文的顺序由文件名前缀决定。
  */
-function chapterSidebarItems() {
-  let files: string[] = []
+function chapterFiles() {
   try {
-    files = fs
+    return fs
       .readdirSync(chaptersDir)
       .filter((file) => file.endsWith('.md') && !file.startsWith('.') && !file.startsWith('_'))
       .sort((a, b) => a.localeCompare(b, 'zh-CN', { numeric: true }))
   } catch {
-    // 目录不存在时使用下面的默认占位
-  }
-
-  if (files.length === 0) {
     // 还没同步过「正文」：先跑一次 npm run docs:sync
     return []
   }
+}
+
+function chapterSidebarItems() {
+  const files = chapterFiles()
 
   return files.map((file, index) => {
     const slug = file.replace(/\.md$/, '')
@@ -178,8 +177,38 @@ function chapterSidebarItems() {
   })
 }
 
+/**
+ * 首页那句「正文共 14 章，另有导语、序章、尾声与后记，约 2.9 万字」里的数字，
+ * 在构建时从 docs/chapters 统计出来，通过 vite.define 注入给 <NovelStats /> 组件。
+ * 所以改完稿重新构建，数字会自己更新，不用手改。
+ */
+function novelStats() {
+  let words = 0
+  const chapters: string[] = []
+  const extras: string[] = []
+
+  for (const file of chapterFiles()) {
+    const { label, title } = splitLabel(file)
+    const name = label || title
+    if (/^第\d+章/.test(name)) {
+      chapters.push(name)
+    } else if (name) {
+      extras.push(name)
+    }
+
+    // 字数按汉字计（与出版社口径接近），不含标题行和 frontmatter
+    const body = readFile(file)
+      .replace(/^---\r?\n[\s\S]*?\r?\n---/, '')
+      .replace(/^#.*$/gm, '')
+    words += (body.match(/[\u3400-\u4dbf\u4e00-\u9fff]/g) || []).length
+  }
+
+  return { chapters: chapters.length, words, extras }
+}
+
 // 侧边栏生成一次，导航和目录共用同一份数据
 const chapters = chapterSidebarItems()
+const stats = novelStats()
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -189,6 +218,13 @@ export default defineConfig({
 
   // 教程自带的示例页面从站点里排除（文件本身保留，随时可以再启用）
   srcExclude: ['markdown-examples.md', 'api-examples.md', 'test.md'],
+
+  // 把统计数字注入到页面代码里，供首页的 <NovelStats /> 组件使用
+  vite: {
+    define: {
+      __NOVEL_STATS__: JSON.stringify(stats)
+    }
+  },
 
   // 配色：默认暖黄（护眼），读者选过淡蓝才加 theme-blue，
   // 这段脚本在首屏渲染前执行，切换色系时不会闪一下
@@ -226,7 +262,7 @@ export default defineConfig({
 
     footer: {
       message: '本作品采用 <a href="/license">CC BY-NC-SA 4.0</a> 许可协议，转载请注明出处',
-      copyright: ''
+      copyright: '© sasaOrange'
     },
 
     search: {

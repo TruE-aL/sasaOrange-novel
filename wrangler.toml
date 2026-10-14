@@ -1,0 +1,10 @@
+# Cloudflare Pages 配置
+#
+# name 会决定默认域名：<name>.pages.dev，首次部署后不能改名（要改只能重建项目）。
+# 想换名字，部署前改这里就行。
+name = "sasaorange-novel"
+
+# 构建输出目录，相对于本文件所在位置（项目根目录）
+pages_build_output_dir = "docs/.vitepress/dist"
+
+compatibility_date = "2026-10-14"
