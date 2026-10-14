@@ -1,6 +1,5 @@
 import DefaultTheme from 'vitepress/theme'
 import { h } from 'vue'
-import NovelStats from './NovelStats'
 import SchemeSwitch from './SchemeSwitch'
 import './theme.css'
 
@@ -8,10 +7,6 @@ import './theme.css'
 // 并把切换按钮挂到顶栏和手机菜单上
 export default {
   extends: DefaultTheme,
-  enhanceApp({ app }: { app: import('vue').App }) {
-    // 让 markdown 里可以直接写 <NovelStats />
-    app.component('NovelStats', NovelStats)
-  },
   Layout() {
     return h(DefaultTheme.Layout, null, {
       'nav-bar-content-after': () => h(SchemeSwitch),

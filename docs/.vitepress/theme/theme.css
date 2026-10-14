@@ -365,25 +365,27 @@ html.theme-blue.dark {
 }
 
 /* ============================================================
-   6. 小说正文排版
-   _chapters_ 是 VitePress 给 docs/chapters/ 下页面自动加的类名
-   （形如 `vp-doc _chapters_03-第一章`），所以只影响章节页，
-   不会影响首页和许可页。
+   6. 小说章节页排版
+   同步脚本会给章节页写 frontmatter `pageClass: novel-chapter`，
+   主题把它加在 Layout 根节点上，所以下面只影响章节页，
+   不会影响书架首页、作品首页和许可页。
    ============================================================ */
 
-[class*='_chapters_'] {
+.novel-chapter .vp-doc {
   font-size: 17px;
   line-height: 1.95;
 }
 
 /* 中文段落首行缩进两格 */
-[class*='_chapters_'] p {
+.novel-chapter .vp-doc p {
   margin: 0.8em 0;
   text-indent: 2em;
 }
 
-/* 章名居中，下方一道主题色短线 */
-[class*='_chapters_'] > h1 {
+/* 章名居中，下方一道主题色短线。
+   注意：h1 并不是 .vp-doc 的直接子元素（中间还有一层 div），
+   所以这里用后代选择器，写成 `> h1` 是不会生效的。 */
+.novel-chapter .vp-doc h1 {
   text-align: center;
   font-size: 1.9em;
   font-weight: 600;
@@ -393,7 +395,7 @@ html.theme-blue.dark {
   border-bottom: none;
 }
 
-[class*='_chapters_'] > h1::after {
+.novel-chapter .vp-doc h1::after {
   content: '';
   display: block;
   width: 3em;
@@ -404,14 +406,54 @@ html.theme-blue.dark {
 }
 
 /* 正文里的行内代码（如 [INFO] 日志）不参与首行缩进，避免断行错位 */
-[class*='_chapters_'] code {
+.novel-chapter .vp-doc code {
   text-indent: 0;
   white-space: nowrap;
 }
 
 /* 手机上字号略收一点，行距不变 */
 @media (max-width: 640px) {
-  [class*='_chapters_'] {
+  .novel-chapter .vp-doc {
     font-size: 16px;
   }
+}
+
+/* ============================================================
+   7. 作品首页（/novels/<slug>/）
+   ============================================================ */
+
+.novel-home .vp-doc .novel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 1.6em 0 2.4em;
+}
+
+.novel-home .vp-doc .novel-btn {
+  display: inline-block;
+  padding: 0.55em 1.4em;
+  border: 1px solid var(--vp-c-border);
+  border-radius: 22px;
+  color: var(--vp-c-brand-1);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
+}
+
+.novel-home .vp-doc .novel-btn:hover {
+  border-color: var(--vp-c-brand-2);
+  background-color: var(--vp-c-brand-soft);
+  transform: translateY(-1px);
+}
+
+.novel-home .vp-doc .novel-btn.primary {
+  border-color: transparent;
+  background-color: var(--vp-c-brand-3);
+  color: var(--vp-button-brand-text);
+  box-shadow: 0 8px 20px rgba(120, 82, 24, 0.18);
+}
+
+.novel-home .vp-doc .novel-btn.primary:hover {
+  background-color: var(--vp-c-brand-2);
 }

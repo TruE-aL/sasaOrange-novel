@@ -1,0 +1,10 @@
+{
+  "title": "书名",
+  "slug": "shuming",
+  "author": "sasaOrange",
+  "tagline": "一句话卖点，会显示在书架卡片和作品首页",
+  "description": "作品简介，会显示在作品首页",
+  "status": "连载中",
+  "license": "CC BY-NC-SA 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by-nc-sa/4.0/"
+}
