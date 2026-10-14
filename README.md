@@ -182,6 +182,23 @@ VitePress 会把这些图片打包进站点。
 首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
 `docs/.vitepress/theme/ReaderSettings.ts` 的 `DEFAULTS` 里。
 
+## 页面切换动画
+
+章节之间跳转（点「下一章」、点目录、点书架卡片）时，正文内容会淡入并轻微上移，
+260ms 结束。动的是内容区，侧边栏和大纲不动，阅读时不会有晃动感。
+
+实现见 `docs/.vitepress/theme/pageTransition.ts`：
+
+- 用 Web Animations API，只在路由切换后给内容区播一段动画，
+  **不碰 VitePress 自己的组件结构**（用 `<Transition>` 包内容需要改它的内部渲染，风险大）
+- 只做入场：退场动画需要在切换前阻塞 DOM 替换，会拖慢导航手感
+- 首次进入（刷新 / 直接输网址）不播，避免内容已经在屏幕上还闪一下
+- 读者系统里开了「减弱动效」（`prefers-reduced-motion: reduce`）就完全不播
+
+想调节奏：改该文件顶部的 `DURATION`（毫秒）、`EASING`，或里面的 `keyframes`
+（比如把 `translateY(8px)` 改成 `translateX(12px)` 就是横向滑入）。不想要就直接
+把 `docs/.vitepress/theme/index.ts` 里的 `installPageTransition(router)` 一行删掉。
+
 ## 阅读进度
 
 每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
