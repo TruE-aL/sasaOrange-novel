@@ -115,6 +115,8 @@ export default defineConfig({
 
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
+    // 顶栏站名左边的小图标，用的是同步脚本生成的站点图标
+    logo: '/favicon.png',
     nav,
     sidebar,
 
