@@ -184,8 +184,14 @@ VitePress 会把这些图片打包进站点。
 
 ## 页面切换动画
 
-章节之间跳转（点「下一章」、点目录、点书架卡片）时，正文内容会淡入并轻微上移，
-260ms 结束。动的是内容区，侧边栏和大纲不动，阅读时不会有晃动感。
+章节之间跳转（点「下一章」、点目录、点书架卡片）时，正文内容会**按翻页方向横向滑入**：
+
+- 往后翻（下一章、目录里更靠后的章）→ 从右侧滑入
+- 往回翻（上一章）→ 从左侧滑入
+- 跨作品、回书架等判断不出顺序的情况 → 默认从右侧滑入
+
+幅度 48px、360ms。方向靠侧边栏的链接顺序判断，所以同一本书内任意跳转都符合直觉；
+动的是内容区，侧边栏和大纲不动，阅读时不会有晃动感。找不到顺序时也不会出错，按默认方向播。
 
 实现见 `docs/.vitepress/theme/pageTransition.ts`：
 
@@ -195,9 +201,10 @@ VitePress 会把这些图片打包进站点。
 - 首次进入（刷新 / 直接输网址）不播，避免内容已经在屏幕上还闪一下
 - 读者系统里开了「减弱动效」（`prefers-reduced-motion: reduce`）就完全不播
 
-想调节奏：改该文件顶部的 `DURATION`（毫秒）、`EASING`，或里面的 `keyframes`
-（比如把 `translateY(8px)` 改成 `translateX(12px)` 就是横向滑入）。不想要就直接
-把 `docs/.vitepress/theme/index.ts` 里的 `installPageTransition(router)` 一行删掉。
+想调节奏：改该文件顶部的 `DURATION`（毫秒）、`EASING`、`OFFSET`（位移像素）。
+换回上下移动，就是把关键帧里的 `translateX(...)` 改成 `translateY(...)`；
+不想要动画就直接把 `docs/.vitepress/theme/index.ts` 里的 `installPageTransition(router)`
+一行删掉。
 
 **看不到动画时先看这两点**：
 
