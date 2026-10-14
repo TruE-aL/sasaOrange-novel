@@ -199,6 +199,13 @@ VitePress 会把这些图片打包进站点。
 （比如把 `translateY(8px)` 改成 `translateX(12px)` 就是横向滑入）。不想要就直接
 把 `docs/.vitepress/theme/index.ts` 里的 `installPageTransition(router)` 一行删掉。
 
+**看不到动画时先看这两点**：
+
+1. 路由器钩子只在应用启动时注册，**改完代码必须整页刷新**（热更新不会重跑 `enhanceApp`），
+   而且首次进入那一下本来就不播——要在章节之间点一次才看得到；
+2. 手机系统若开了「减弱动效」，动画会被跳过。开发模式下控制台会打印提示，
+   想强制打开：`localStorage.setItem('novel-motion', 'force')` 然后刷新。
+
 ## 阅读进度
 
 每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
