@@ -1,4 +1,7 @@
 {
+  "name": "sasaorange-novel",
+  "private": true,
+  "packageManager": "pnpm@12.11.2",
   "devDependencies": {
     "sharp": "^0.35.5",
     "vitepress": "2.0.0-alpha.20"
@@ -7,9 +10,9 @@
     "docs:sync": "node scripts/sync-content.mjs",
     "docs:clean": "node scripts/clean.mjs",
     "docs:dev": "node scripts/dev.mjs",
-    "docs:build": "npm run docs:sync && vitepress build docs",
+    "docs:build": "pnpm run docs:sync && vitepress build docs",
     "docs:preview": "vitepress preview docs",
-    "docs:deploy": "npm run docs:build && npx wrangler pages deploy",
+    "docs:deploy": "pnpm run docs:build && npx wrangler pages deploy",
     "fonts:build": "node scripts/build-font.mjs"
   }
 }
