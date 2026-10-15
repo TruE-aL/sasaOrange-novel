@@ -2,13 +2,6 @@ import { defineComponent, h, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useData } from 'vitepress'
 import { clearAllReadData } from './readingProgress'
 
-/**
- * 和 config.mts 里那段防闪烁脚本共用的键名。
- * 这里只存「目录是否收起」这一个状态，所以单独用一个键，
- * 不动 ReaderSettings 那个（那边是字号 / 行距 / 字体 / 版心）。
- */
-export const SIDEBAR_STORAGE_KEY = 'novel-sidebar-collapsed'
-
 /** Teek 那枚「自适应宽度」图标：上下两条横线夹一个左右箭头 */
 const ICON = `<svg viewBox="0 0 48 48" width="1.15em" height="1.15em" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"><path d="M6 7h36M8 24h32"/><path stroke-linejoin="round" d="M13.99 30L8 24.005L14 18m20.01 0L40 23.995L34 30"/><path d="M6 41h36"/></g></svg>`
 
@@ -24,11 +17,14 @@ const DONE_ICON = `<svg viewBox="0 0 20 20" width="1.15em" height="1.15em" xmlns
  * 折叠按钮做法参考 vitepress-theme-teek 的 sidebar-trigger：
  *  1. 给 <html> 加 .novel-sidebar-collapsed，CSS 把侧边栏宽度过渡到 0
  *     （用 width:0 而不是 display:none，这样才有平滑动画）
- *  2. 按钮 fixed 定位，left 值跟着折叠状态切换，所以收起后按钮会自己滑到左边
+ *  2. 工具条 fixed 定位，left 值跟着折叠状态切换，所以收起后按钮会自己滑到左边
  *  3. 过渡 class 在挂载后才加，避免「首页 → 文章页」切换时动画跟着播一遍
  *
+ * 目录状态**不记忆**：每次进入页面都从收起态开始（见 config.mts 里的
+ * 防闪烁脚本，它也会无条件加上 .novel-sidebar-collapsed）。
+ *
  * 两个按钮包在同一个 .novel-sidebar-tools 容器里：定位交给容器，
- * 清空按钮只要跟着容器排在里面就行，不用各自抄一套 media query。
+ * 按钮只要跟着容器排在里面就行，不用各自抄一套 media query。
  *
  * 只在有侧边栏的章节页显示；手机上（<960px）整个容器不渲染。
  */
@@ -36,8 +32,9 @@ export default defineComponent({
   name: 'SidebarToggle',
   setup() {
     const { frontmatter } = useData()
-    const collapsed = ref(false)
-    // 清空成功后的短暂反馈：图标换成对勾、禁用重复点击
+    // 默认收起，且只活在当前页面里（不写 localStorage）
+    const collapsed = ref(true)
+    // 清空成功后的短暂反馈：图标换成对勾
     const cleared = ref(false)
     let clearedTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -56,13 +53,6 @@ export default defineComponent({
     onMounted(() => {
       isDesktop.value = mql ? mql.matches : false
       mql?.addEventListener('change', syncDesktop)
-
-      // 记住上次的选择
-      try {
-        collapsed.value = localStorage.getItem(SIDEBAR_STORAGE_KEY) === '1'
-      } catch {
-        collapsed.value = false
-      }
       sync()
 
       // 等首帧渲染完再加过渡：否则首次进入文章页会看到侧边栏「收起」的动画
@@ -79,11 +69,6 @@ export default defineComponent({
     const toggle = () => {
       collapsed.value = !collapsed.value
       sync()
-      try {
-        localStorage.setItem(SIDEBAR_STORAGE_KEY, collapsed.value ? '1' : '0')
-      } catch {
-        // 隐私模式写不了也没关系，只是记不住
-      }
     }
 
     /** 清空所有阅读记录（阅读位置 + 已读小点），并给一下短暂反馈 */
@@ -100,6 +85,15 @@ export default defineComponent({
       if (!visible.value || !isDesktop.value) return null
       const label = collapsed.value ? '展开章节目录' : '收起章节目录'
       return h('div', { class: 'novel-sidebar-tools' }, [
+        // 清空阅读记录放前面（左），折叠按钮放后面（右）
+        h('button', {
+          type: 'button',
+          class: ['novel-history-clear', { 'is-cleared': cleared.value }],
+          title: cleared.value ? '已清空' : '清空阅读记录',
+          'aria-label': '清空阅读记录',
+          innerHTML: cleared.value ? DONE_ICON : CLEAR_ICON,
+          onClick: clearHistory
+        }),
         h('button', {
           type: 'button',
           class: ['novel-sidebar-toggle', { 'is-collapsed': collapsed.value }],
@@ -108,14 +102,6 @@ export default defineComponent({
           'aria-expanded': String(!collapsed.value),
           innerHTML: ICON,
           onClick: toggle
-        }),
-        h('button', {
-          type: 'button',
-          class: ['novel-history-clear', { 'is-cleared': cleared.value }],
-          title: cleared.value ? '已清空' : '清空阅读记录',
-          'aria-label': '清空阅读记录',
-          innerHTML: cleared.value ? DONE_ICON : CLEAR_ICON,
-          onClick: clearHistory
         })
       ])
     }

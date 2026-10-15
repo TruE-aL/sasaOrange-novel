@@ -90,6 +90,9 @@ html.reader-sans {
   --novel-sidebar-speed: 0.5s;
   /* 缓动：两端加减速都更柔和，收起/展开时「推」的感觉更自然 */
   --novel-sidebar-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* 目录顶部的书名（「持续存在」那行）字号——工具条上的图标按钮跟它同尺寸、
+     同竖直位置，改这里两边一起变 */
+  --novel-sidebar-title-size: 14px;
 
   /* 阴影：跟着配色走的一层暖色调（见下面 .dark 里换的黑影） */
   --novel-shadow-rgb: 96, 70, 36;
@@ -786,11 +789,13 @@ html.theme-orange.dark {
     position: fixed;
     /* 收起前：工具条右缘贴在侧边栏右缘（和 Teek 一样留 10px 内缩） */
     left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + var(--vp-sidebar-width) - 32px + 10px);
-    top: calc(var(--vp-nav-height) + 12px);
+    /* 和目录顶部的书名竖直对齐：书名那行 14px 字、行盒 32px、垂直中心在
+       nav(64px) + 26px ≈ y90，所以 14px 高的图标上边距取 83 */
+    top: calc(var(--vp-nav-height) + 19px);
     z-index: 40;
     display: inline-flex;
     align-items: center;
-    gap: 6px;
+    gap: 10px;
     /* left 跟着折叠一起滑；其余是 hover 的即时反馈 */
     transition: left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1));
   }
@@ -800,33 +805,40 @@ html.theme-orange.dark {
     left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + 10px);
   }
 
-  /* 两个按钮共用一套外观 */
+  /* 两个按钮共用一套外观。
+     做成「没有边框、没有底色」的纯图标：颜色跟目录文字一样是主题色
+     （--vp-c-brand-1），尺寸放大到和「持续存在」那行书名的字号一致
+     （--novel-sidebar-title-size），竖直方向也跟它对齐。 */
   .Layout.novel-chapter .novel-sidebar-tools button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 26px;
-    height: 26px;
+    width: var(--novel-sidebar-title-size, 16px);
+    height: var(--novel-sidebar-title-size, 16px);
     padding: 0;
-    border: 1px solid var(--vp-c-divider);
-    border-radius: 8px;
-    background-color: var(--vp-c-bg);
-    color: var(--vp-c-text-2);
+    border: 0;
+    border-radius: 0;
+    background-color: transparent;
+    color: var(--vp-c-brand-1);
+    font-size: var(--novel-sidebar-title-size, 16px);
+    line-height: 1;
     cursor: pointer;
-    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+    transition: color 0.2s ease, opacity 0.2s ease;
+  }
+
+  /* 图标跟着按钮字号走，撑满整个按钮盒子 */
+  .Layout.novel-chapter .novel-sidebar-tools button svg {
+    width: 1em;
+    height: 1em;
   }
 
   .Layout.novel-chapter .novel-sidebar-tools button:hover {
-    border-color: var(--vp-c-brand-2);
-    background-color: var(--vp-c-brand-soft);
-    color: var(--vp-c-brand-1);
+    color: var(--vp-c-brand-2);
   }
 
-  /* 清空成功：短暂高亮主题色 + 换成对勾，1.2s 后自动还原 */
+  /* 清空成功：短暂高亮 + 换成对勾，1.2s 后自动还原 */
   .Layout.novel-chapter .novel-history-clear.is-cleared {
-    border-color: var(--vp-c-brand-2);
-    background-color: var(--vp-c-brand-soft);
-    color: var(--vp-c-brand-1);
+    color: var(--vp-c-brand-2);
   }
 }
 
@@ -845,23 +857,23 @@ html.theme-orange.dark {
    这个区间里 VitePress 会把目录从右侧栏搬成 VPLocalNav 里的一条
    「本页目录 ›」按钮（≥1280px 才回右栏，<960px 干脆没有）。
 
-   原来按钮左缘在 left ≈ sidebar-width + 10px（1200px 下是 282）、宽 26px，
-   右缘到 308 —— 而「本页目录」那条从分界线 272 就开始了（图标占
-   272–304）。按钮右缘 308 > 272，于是图标和文字被压住。
+   原来按钮左缘在 left ≈ sidebar-width + 10px（1200px 下是 282），右缘到
+   308 —— 而「本页目录」那条从分界线 272 就开始了（图标占 272–304）。
+   按钮右缘 308 > 272，于是图标和文字被压住。
 
    改法就是把它**往左挪到分界线里侧**：右缘缩进到分界线左边 8px 左右。
-   工具条现在含两个按钮（26 + 6 + 26 = 58px），所以左缘 = 272 - 8 - 58 = 206。
+   工具条现在含两个图标（14 + 10 + 14 = 38px），所以左缘 = 272 - 8 - 38 = 226。
    工具条仍在原来那一带（贴着侧边栏分界线），没有往右边跑 ——
-   只是让开了「本页目录」的图标。
+   只是让开了「本页目录」的图标。 
    ---- */
 @media (min-width: 960px) and (max-width: 1279px) {
   .Layout.novel-chapter .novel-sidebar-tools {
-    /* 右缘落在侧边栏分界线里侧、留 8px 空隙（272 - 8 - 58 = 206）。
+    /* 右缘落在侧边栏分界线里侧、留 8px 空隙（272 - 8 - 38 = 226）。
        用 --vp-sidebar-width 表达，不依赖具体像素。 */
-    left: calc(var(--vp-sidebar-width) - 66px);
+    left: calc(var(--vp-sidebar-width) - 46px);
     right: auto;
-    /* 和 VPLocalNav 同一行：条高 52px、垂直居中，26px 的按钮居中后上边距 13px */
-    top: calc(var(--vp-nav-height) + 13px);
+    /* 和 VPLocalNav 同一行：条高 52px，14px 的图标垂直居中后上边距 19px */
+    top: calc(var(--vp-nav-height) + 19px);
   }
 
   /* 收起态：侧边栏没了，工具条按惯例滑到页面最左（和 ≥1280px 的收起行为一致） */

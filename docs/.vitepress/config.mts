@@ -214,8 +214,9 @@ export default defineConfig({
         "if(r.leading)d.style.setProperty('--novel-reader-leading',String(r.leading));",
         "if(r.measure)d.style.setProperty('--novel-measure',r.measure+'px');",
         "if(r.font==='sans')d.classList.add('reader-sans')}",
-        // 目录收起状态是单独一个键：提前加 class，避免刷新后侧边栏先展开再收起那一下
-        "if(localStorage.getItem('novel-sidebar-collapsed')==='1')d.classList.add('novel-sidebar-collapsed');",
+        // 目录默认收起，而且不记忆——每进一个页面都从收起态开始。
+        // 这里提前把 class 加上，避免首帧先渲染出展开的侧边栏、再「唰」地收回去。
+        "d.classList.add('novel-sidebar-collapsed');",
         '}catch(e){}'
       ].join('')
     ]
