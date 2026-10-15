@@ -62,8 +62,15 @@ function emitReadChange() {
 
 /** 太靠上（不足这么多像素）就不必恢复 */
 const MIN_RESTORE = 120
-/** 距页尾这么近就算读完了 */
-const FINISHED_GAP = 40
+/**
+ * 读到这一章的多大比例就算「读完」。
+ *
+ * 原来用的是「距页尾 40px」这种固定像素差，问题在于它跟章节长短无关：
+ * 长章节末尾留白多，可能还差好几屏就觉得"快到了"；短章节反而 40px 占比很大。
+ * 改成比例后，长短章节一视同仁。数值取 0.9（读到 90% 即算）。
+ * （思路参考 Teek 的 back-top 进度条：scrollY / (scrollHeight - innerHeight)）
+ */
+const FINISHED_RATIO = 0.9
 /** 最多记多少章，超出就丢掉最早的 */
 const MAX_ENTRIES = 120
 /** 内容（图片、字体）还没撑开时，重试几次 */
@@ -221,13 +228,14 @@ export function installReadingProgress(router: VitePressRouter) {
   }
 
   /**
-   * 是否已经滚到「读完了」那条线。
+   * 是否已经滚到「读完了」那条线（读到本章 90%）。
    * 判定只有这一处，flush 与滚动即时标记都用它，避免两边标准跑偏。
    */
   const reachedEnd = () => {
     if (!isReadingPage()) return false
-    const bottom = document.documentElement.scrollHeight - window.innerHeight
-    return bottom > 0 && scrollTop() >= bottom - FINISHED_GAP
+    const max = document.documentElement.scrollHeight - window.innerHeight
+    // 页面短到没有可滚动空间时，视为"一眼看完"→ 不算读完（否则一进来就自动已读）
+    return max > 0 && scrollTop() / max >= FINISHED_RATIO
   }
 
   /** 把 capture 记下的位置写进 localStorage */
@@ -240,8 +248,8 @@ export function installReadingProgress(router: VitePressRouter) {
     const { path, y } = pending
     pending = null
 
-    const bottom = document.documentElement.scrollHeight - window.innerHeight
-    if (bottom > 0 && y >= bottom - FINISHED_GAP) {
+    const max = document.documentElement.scrollHeight - window.innerHeight
+    if (max > 0 && y / max >= FINISHED_RATIO) {
       // 这一章读到底了：位置清掉（下次从开头读），同时记进已读
       finish(path)
     } else if (y > 0) {
