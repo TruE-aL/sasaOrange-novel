@@ -14,6 +14,10 @@ import {
  *   · 内容有图片 / 字体，恢复位置要反复重试，偶尔会落到奇怪的地方。
  * 现在**只存已读章节**，任何一次进入都从文章头开始读。
  *
+ * 「已读」由读者自己的滚动来判定（滚到本章 90% 即算），全程不看切页那一刻
+ * 的滚动值——VitePress 路由会在切页瞬间自己滚一下，那个值不可信。详见
+ * 下方 onNavigationStart / frozen 的说明。
+ *
  * 切页时机借 theme/navigation.ts 的统一钩子（VitePress 2 自带路由，没有 vue-router 的 beforeEach）。
  */
 
@@ -180,65 +184,97 @@ export function installReadingProgress(router: VitePressRouter) {
   }
 
   /**
-   * 是否已经滚到「读完了」那条线（读到本章 90%）。
-   * 判定只有这一处，离开时的补记与滚动即时标记都用它，避免两边标准跑偏。
+   * 切页已经开始了：这之后到达的 scroll 事件都当成「路由自己在动」，一律忽略。
+   *
+   * 为什么需要它：VitePress 在切页瞬间会自己滚一下（实测停在顶部点「下一章」，
+   * scrollY 在半帧内冲到 scrollHeight），而 scroll 事件是异步派发的——它在钩子
+   * 之后才到达（实测约 +29ms）。若不挡住，onScroll 里的实时判定会把这个假位置
+   * 当成「读者读到页尾」，把刚翻开没读的一章误标成已读。
+   *
+   * ✅ 必须在 onNavigationStart 里置位：它先于那个 scroll 事件执行。
+   *    （注意这里不能顺手 capture()，那一刻 scrollY 已被污染。）
    */
-  const reachedEnd = () => {
+  let frozen = false
+
+  /**
+   * 某个滚动位置是不是已经越过「读完了」那条线（本章 90%）。
+   *
+   * 收成纯函数（位置由调用方传进来），因为两种场合该用的位置不一样：
+   *   · 读者还在这一页滚 → 传实时 scrollTop()，那是真的滚动
+   *   · 正要离开这一页   → 传切页前记下的 pendingY，实时值此刻已不可信
+   *     （VitePress 会在切页瞬间自己滚一下，见 frozen 那段说明）
+   *
+   * 判定标准只此一处，标记与取消共用，省得两边口径跑偏。
+   */
+  const reachedEndAt = (y: number) => {
     if (!isReadingPage()) return false
     const max = document.documentElement.scrollHeight - window.innerHeight
     // 页面短到没有可滚动空间时，视为"一眼看完"→ 不算读完（否则一进来就自动已读）
-    return max > 0 && scrollTop() / max >= FINISHED_RATIO
+    return max > 0 && y / max >= FINISHED_RATIO
   }
 
   /** 读到页尾就即时标记：读者停在章末不动时，目录里也该立刻出点 */
   const markIfFinished = () => {
-    if (reachedEnd()) finish(currentPath)
+    if (reachedEndAt(scrollTop())) finish(currentPath)
   }
 
   const onScroll = () => {
+    // 切页途中路由自己滚出来的事件不算数，别让它污染 pendingY
+    if (frozen) return
     capture()
     markIfFinished()
     // 防抖：滚完停一会儿再确认一次，避免最后一帧刚好越过判定线却漏掉
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(() => {
       saveTimer = null
-      markIfFinished()
+      if (!frozen) markIfFinished()
     }, 300)
   }
 
   window.addEventListener('scroll', safe(onScroll), { passive: true })
-  window.addEventListener(
-    'beforeunload',
-    safe(() => {
-      capture()
-      markIfFinished()
-    })
-  )
+
+  /**
+   * 刷新 / 关标签页：此时路由不会自己滚，实时位置是可信的，
+   * 所以直接读实时值记一次（「读到页尾就走了」也该算数）。
+   * 若正处在切页途中（frozen），就跳过一次，免得把假滚动当成读完。
+   */
+  const markOnLeave = () => {
+    if (frozen) return
+    capture()
+    markIfFinished()
+  }
+
+  window.addEventListener('beforeunload', safe(markOnLeave))
   document.addEventListener(
     'visibilitychange',
     safe(() => {
-      if (document.visibilityState === 'hidden') {
-        capture()
-        markIfFinished()
-      }
+      if (document.visibilityState === 'hidden') markOnLeave()
     })
   )
 
   /**
    * 离开这一章（切到别的页）：
-   *  · 停在章末        → 补记「已读」
    *  · 中途离开        → 若这章本是已读，取消小点（这次没读到底）
+   *  · 停在章末        → 不需要在这里补记，见下
    *  · 刷新 / 关标签页  → 走的是 beforeunload / visibilitychange，不经过这里，
    *                     所以不算「重新读了一遍」，已读状态不动
+   *
+   * 为什么这里**只取消、不补记**：
+   * 「读到底」这件事在 onScroll 里已经判定过了——读者滚到 90% 的那一刻就会
+   * 实时打上，根本轮不到离开时才补。而离开这一刻的实时 scrollY 是不可信的：
+   * VitePress 的路由在切页瞬间会自己滚一下（实测停在顶部点「下一章」，
+   * scrollY 在半帧内冲到 scrollHeight），若在此处读实时值，等于把每一章
+   * 都判成「读到页尾」，刚翻开没读的章节会被误标成已读。
+   * 所以这里只用切页前记下的 pendingY 做「要不要收回小点」的判断。
    */
   onNavigationStart(
     safe((to: string) => {
-      capture()
-      markIfFinished()
+      // 先上闸：挡住紧随其后、由路由自己滚动触发的那批 scroll 事件
+      frozen = true
 
       const leaving = normalizePath(to) !== currentPath
-      // 只在「真的读了一点」时才收回小点，避免刚进来没滚就被取消
-      if (leaving && !reachedEnd() && pendingY > 0) {
+      // 停在顶部没动过（pendingY == 0）就不管，避免刚进来没滚就被改状态
+      if (leaving && pendingY > 0 && !reachedEndAt(pendingY)) {
         reopen(currentPath)
       }
       pendingY = 0
@@ -249,6 +285,7 @@ export function installReadingProgress(router: VitePressRouter) {
     safe((to: string) => {
       currentPath = normalizePath(to)
       pendingY = 0
+      frozen = false
       // 不再恢复滚动位置：每次进章节都从文章头开始
     })
   )
