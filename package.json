@@ -1,7 +1,7 @@
 {
   "name": "sasaorange-novel",
   "private": true,
-  "packageManager": "pnpm@12.11.2",
+  "packageManager": "pnpm@9.15.9",
   "devDependencies": {
     "sharp": "^0.35.5",
     "vitepress": "2.0.0-alpha.20"
