@@ -7,28 +7,24 @@ import {
 } from './navigation'
 
 /**
- * 阅读进度记忆：把每章的滚动位置存进 localStorage，下次回到这一章接着读。
+ * 阅读记录：只记「读到过哪些章节」，不记滚动位置。
  *
- * 几条规则（都是为了避免「奇怪地回到中间」）：
- * - 只记正文页：书架首页、作品许可页这类不记
- * - 点「上一章 / 下一章」时不恢复：那种情况读者通常想看新章节的开头
- * - 带 #锚点 的链接不恢复：交给 VitePress 自己定位到锚点
- * - 已经滚到页尾（读完了）就清掉记录，下次从开头开始
+ * 早先还会把每章滚到哪儿存进 localStorage，下次回来接着读。后来去掉了：
+ *   · 从书架点「开始阅读」进来，正文从中间开始，反而不像"开始"；
+ *   · 内容有图片 / 字体，恢复位置要反复重试，偶尔会落到奇怪的地方。
+ * 现在**只存已读章节**，任何一次进入都从文章头开始读。
  *
  * 切页时机借 theme/navigation.ts 的统一钩子（VitePress 2 自带路由，没有 vue-router 的 beforeEach）。
  */
-export const PROGRESS_STORAGE_KEY = 'novel-progress'
 
 /**
- * 「已读」单独存一份，和阅读位置分开。
+ * 已读章节的存储键。
  *
- * 为什么要分开：这两件事的语义是相反的。
- *   · novel-progress 记「读到哪儿了」——读到底反而要清掉，下次从头读；
- *   · novel-read     记「读没读完」——读到底正是要记下来的那一刻。
- * 之前把「已读」从 progress 反推，于是「在章末点下一章」这条最常见的路径
- * 恰好把记录清了，目录里的小点就不见了。现在各管各的。
+ * 语义是「读到过尾」：读到底就记下来（目录里点一个小圆点），
+ * 中途离开不算数。和「读到哪儿了」是两件事，所以只留这一份存储。
  */
 export const READ_STORAGE_KEY = 'novel-read'
+
 /** 顶部进度条用的百分比 0–100。（纯函数，放在这里是因为它和阅读进度同属一件事） */
 export function progressPercent(scrollTop: number, scrollHeight: number, innerHeight: number) {
   const max = scrollHeight - innerHeight
@@ -60,12 +56,10 @@ function emitReadChange() {
   }
 }
 
-/** 太靠上（不足这么多像素）就不必恢复 */
-const MIN_RESTORE = 120
 /**
  * 读到这一章的多大比例就算「读完」。
  *
- * 原来用的是「距页尾 40px」这种固定像素差，问题在于它跟章节长短无关：
+ * 不用「距页尾 40px」那种固定像素差，因为它跟章节长短无关：
  * 长章节末尾留白多，可能还差好几屏就觉得"快到了"；短章节反而 40px 占比很大。
  * 改成比例后，长短章节一视同仁。数值取 0.9（读到 90% 即算）。
  * （思路参考 Teek 的 back-top 进度条：scrollY / (scrollHeight - innerHeight)）
@@ -73,44 +67,6 @@ const MIN_RESTORE = 120
 const FINISHED_RATIO = 0.9
 /** 最多记多少章，超出就丢掉最早的 */
 const MAX_ENTRIES = 120
-/** 内容（图片、字体）还没撑开时，重试几次 */
-const MAX_TRIES = 8
-const RETRY_DELAY = 150
-
-type Entry = { path: string; y: number }
-
-function read(): Entry[] {
-  try {
-    const raw = JSON.parse(localStorage.getItem(PROGRESS_STORAGE_KEY) || '[]')
-    if (!Array.isArray(raw)) return []
-    return raw.filter((item) => item && typeof item.path === 'string' && typeof item.y === 'number')
-  } catch {
-    return []
-  }
-}
-
-function write(entries: Entry[]) {
-  try {
-    localStorage.setItem(PROGRESS_STORAGE_KEY, JSON.stringify(entries.slice(-MAX_ENTRIES)))
-  } catch {
-    // 隐私模式写不了就算了
-  }
-}
-
-function save(path: string, y: number) {
-  const entries = read().filter((item) => item.path !== path)
-  entries.push({ path, y: Math.round(y) })
-  write(entries)
-}
-
-function readOne(path: string): number | null {
-  const entry = read().find((item) => item.path === path)
-  return entry ? entry.y : null
-}
-
-function clear(path: string) {
-  write(read().filter((item) => item.path !== path))
-}
 
 /** 读过的章节路径（存进来时就统一了写法，取出来可直接比对） */
 export function readPaths(): string[] {
@@ -124,19 +80,18 @@ export function readPaths(): string[] {
 }
 
 /**
- * 一键清空所有阅读记录：阅读位置 + 已读标记。
+ * 一键清空所有阅读记录。
  *
- * 两处都要清：
- *   · novel-progress —— 否则「继续阅读」还会指着上次那一章；
- *   · novel-read     —— 否则目录里的已读小点擦不掉。
- * 另外把老数据迁移的标记也一并清掉，省得哪天迁移逻辑再跑一遍又把进度当已读。
+ *   · novel-read            —— 目录里的已读小点擦掉
+ *   · novel-progress        —— 老版本残留的「阅读位置」，顺手清干净
+ *   · novel-read-migrated   —— 老数据迁移标记，一并清掉
  *
  * 清完通知监听者（shelf 借此立刻把目录小点抹掉，不用等切页）。
  */
 export function clearAllReadData(): void {
   try {
-    localStorage.removeItem(PROGRESS_STORAGE_KEY)
     localStorage.removeItem(READ_STORAGE_KEY)
+    localStorage.removeItem('novel-progress')
     localStorage.removeItem('novel-read-migrated')
   } catch {
     // 隐私模式写不了就算了
@@ -169,11 +124,10 @@ function unmarkRead(path: string): boolean {
 }
 
 /**
- * 章节读完：清掉阅读位置（下次从头读），并记进已读集合。
+ * 章节读完：记进已读集合。
  * 第一次读完时通知监听者（shelf 借此即时刷新目录小点）。
  */
 function finish(path: string): void {
-  clear(path)
   if (markRead(path)) emitReadChange()
 }
 
@@ -181,32 +135,14 @@ function finish(path: string): void {
  * 重新打开一个已读章节、却没读到底就离开：取消它的已读标记。
  *
  * 语义上说得通——「已读」表示的是「这一章读到过尾」，
- * 既然这次重读没到结尾，那这个小点就该收回去，同时把这次的位置记下来，
- * 下次再进来从这儿接着读。
+ * 既然这次重读没到结尾，那这个小点就该收回去。
  *
  * 返回是否真的取消了（取消了才需要刷目录）。
  */
-function reopen(path: string, y: number): boolean {
+function reopen(path: string): boolean {
   if (!unmarkRead(path)) return false
-  if (y > 0) save(path, y)
   emitReadChange()
   return true
-}
-
-/**
- * 老版本只存了 novel-progress，升级后要把「已有进度」并进已读集合，
- * 否则老读者会突然发现目录小点全没了。整个生命周期只跑一次。
- */
-function migrateLegacyRead() {
-  try {
-    if (localStorage.getItem('novel-read-migrated') === '1') return
-    for (const entry of read()) {
-      if (entry.y > 0) markRead(entry.path)
-    }
-    localStorage.setItem('novel-read-migrated', '1')
-  } catch {
-    // 迁移失败不影响使用
-  }
 }
 
 /** 正文页才有这个类名（由 config.mts 的 transformPageData 注入） */
@@ -232,50 +168,26 @@ export function installReadingProgress(router: VitePressRouter) {
       }
     }
 
-  // 老读者的旧数据先并进已读集合，再开始正常逻辑
-  safe(migrateLegacyRead)()
-
   // 首屏时 router.route 还停在默认的 "/"，真正的页面地址看 location 才准
   let currentPath = currentRoutePath(router) || normalizePath(window.location.pathname)
-  let pending: Entry | null = null
+  let pendingY = 0
   let saveTimer: ReturnType<typeof setTimeout> | null = null
-  let skipNext = false
-  let lastRestore = { path: '', at: 0 }
 
-  /** 记下「此刻这一页滚到哪儿了」，先不落盘 */
+  /** 记下「此刻这一页滚到哪儿了」，供离开时判断是否停在章末 */
   const capture = () => {
     if (!isReadingPage()) return
-    pending = { path: currentPath, y: scrollTop() }
+    pendingY = scrollTop()
   }
 
   /**
    * 是否已经滚到「读完了」那条线（读到本章 90%）。
-   * 判定只有这一处，flush 与滚动即时标记都用它，避免两边标准跑偏。
+   * 判定只有这一处，离开时的补记与滚动即时标记都用它，避免两边标准跑偏。
    */
   const reachedEnd = () => {
     if (!isReadingPage()) return false
     const max = document.documentElement.scrollHeight - window.innerHeight
     // 页面短到没有可滚动空间时，视为"一眼看完"→ 不算读完（否则一进来就自动已读）
     return max > 0 && scrollTop() / max >= FINISHED_RATIO
-  }
-
-  /** 把 capture 记下的位置写进 localStorage */
-  const flush = () => {
-    if (saveTimer) {
-      clearTimeout(saveTimer)
-      saveTimer = null
-    }
-    if (!pending) return
-    const { path, y } = pending
-    pending = null
-
-    const max = document.documentElement.scrollHeight - window.innerHeight
-    if (max > 0 && y / max >= FINISHED_RATIO) {
-      // 这一章读到底了：位置清掉（下次从开头读），同时记进已读
-      finish(path)
-    } else if (y > 0) {
-      save(path, y)
-    }
   }
 
   /** 读到页尾就即时标记：读者停在章末不动时，目录里也该立刻出点 */
@@ -286,8 +198,12 @@ export function installReadingProgress(router: VitePressRouter) {
   const onScroll = () => {
     capture()
     markIfFinished()
+    // 防抖：滚完停一会儿再确认一次，避免最后一帧刚好越过判定线却漏掉
     if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = setTimeout(flush, 300)
+    saveTimer = setTimeout(() => {
+      saveTimer = null
+      markIfFinished()
+    }, 300)
   }
 
   window.addEventListener('scroll', safe(onScroll), { passive: true })
@@ -295,7 +211,7 @@ export function installReadingProgress(router: VitePressRouter) {
     'beforeunload',
     safe(() => {
       capture()
-      flush()
+      markIfFinished()
     })
   )
   document.addEventListener(
@@ -303,25 +219,15 @@ export function installReadingProgress(router: VitePressRouter) {
     safe(() => {
       if (document.visibilityState === 'hidden') {
         capture()
-        flush()
+        markIfFinished()
       }
     })
-  )
-
-  // 点「上一章 / 下一章」时，下一页不要恢复旧位置
-  document.addEventListener(
-    'click',
-    (event) => {
-      const target = event.target as HTMLElement | null
-      if (target?.closest?.('.pager-link')) skipNext = true
-    },
-    true
   )
 
   /**
    * 离开这一章（切到别的页）：
    *  · 停在章末        → 补记「已读」
-   *  · 中途离开到别章   → 若这章本是已读，取消小点；并记下当前位置，下次接着读
+   *  · 中途离开        → 若这章本是已读，取消小点（这次没读到底）
    *  · 刷新 / 关标签页  → 走的是 beforeunload / visibilitychange，不经过这里，
    *                     所以不算「重新读了一遍」，已读状态不动
    */
@@ -332,48 +238,18 @@ export function installReadingProgress(router: VitePressRouter) {
 
       const leaving = normalizePath(to) !== currentPath
       // 只在「真的读了一点」时才收回小点，避免刚进来没滚就被取消
-      if (leaving && pending && !reachedEnd() && pending.y > 0) {
-        reopen(currentPath, pending.y)
-        pending = null // 位置已由 reopen 落盘，交给 flush 会被判成「没到底」而重复保存
+      if (leaving && !reachedEnd() && pendingY > 0) {
+        reopen(currentPath)
       }
-
-      flush()
+      pendingY = 0
     })
   )
-
-  const restore = (path: string) => {
-    if (lastRestore.path === path && Date.now() - lastRestore.at < 800) return
-    const y = readOne(path)
-    if (y === null || y < MIN_RESTORE) return
-    lastRestore = { path, at: Date.now() }
-
-    let tries = 0
-    const attempt = () => {
-      // 已经切到别的页面了就别再折腾
-      if (currentRoutePath(router) !== path) return
-      const max = document.documentElement.scrollHeight - window.innerHeight
-      // 新页面的内容（图片、字体）可能还没撑开，撑到目标位置再滚
-      if ((isReadingPage() && max >= y - 8) || tries >= MAX_TRIES) {
-        window.scrollTo({ top: Math.min(y, Math.max(max, 0)), behavior: 'auto' })
-        return
-      }
-      tries++
-      setTimeout(attempt, RETRY_DELAY)
-    }
-
-    // 等 Vue 把新页面挂上去、VitePress 自己那次「滚到顶」跑完
-    requestAnimationFrame(() => setTimeout(attempt, 60))
-  }
 
   onNavigationEnd(
     safe((to: string) => {
       currentPath = normalizePath(to)
-      const skip = skipNext || Boolean(router.route?.hash)
-      skipNext = false
-      if (!skip) restore(currentPath)
+      pendingY = 0
+      // 不再恢复滚动位置：每次进章节都从文章头开始
     })
   )
-
-  // 首屏（刷新 / 直接输网址进来）时上面那个钩子还没轮到，补一次
-  setTimeout(safe(() => restore(currentRoutePath(router) || normalizePath(window.location.pathname))), 160)
 }

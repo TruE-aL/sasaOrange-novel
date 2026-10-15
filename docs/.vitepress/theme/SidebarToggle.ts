@@ -1,6 +1,7 @@
 import { defineComponent, h, ref, computed, onMounted, onUnmounted } from 'vue'
 import { useData } from 'vitepress'
 import { clearAllReadData } from './readingProgress'
+import { onNavigationEnd } from './navigation'
 
 /** Teek 那枚「自适应宽度」图标：上下两条横线夹一个左右箭头 */
 const ICON = `<svg viewBox="0 0 48 48" width="1.15em" height="1.15em" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="4"><path d="M6 7h36M8 24h32"/><path stroke-linejoin="round" d="M13.99 30L8 24.005L14 18m20.01 0L40 23.995L34 30"/><path d="M6 41h36"/></g></svg>`
@@ -20,8 +21,11 @@ const DONE_ICON = `<svg viewBox="0 0 20 20" width="1.15em" height="1.15em" xmlns
  *  2. 工具条 fixed 定位，left 值跟着折叠状态切换，所以收起后按钮会自己滑到左边
  *  3. 过渡 class 在挂载后才加，避免「首页 → 文章页」切换时动画跟着播一遍
  *
- * 目录状态**不记忆**：每次进入页面都从收起态开始（见 config.mts 里的
- * 防闪烁脚本，它也会无条件加上 .novel-sidebar-collapsed）。
+ * 目录状态**不记忆**：每次进入页面都从收起态开始。
+ *   · 首屏靠 config.mts 的防闪烁脚本无条件加 .novel-sidebar-collapsed；
+ *   · 站内切页（章 → 章，或正文 → 首页再回来）由下面的 onNavigationEnd
+ *     把 collapsed 复位，所以「读一会儿、手动展开、回主页、再点开始阅读」
+ *     进去看到的仍是收起状态。
  *
  * 两个按钮包在同一个 .novel-sidebar-tools 容器里：定位交给容器，
  * 按钮只要跟着容器排在里面就行，不用各自抄一套 media query。
@@ -58,6 +62,13 @@ export default defineComponent({
       // 等首帧渲染完再加过渡：否则首次进入文章页会看到侧边栏「收起」的动画
       requestAnimationFrame(() => {
         document.documentElement.classList.add('novel-sidebar-animated')
+      })
+
+      // 站内切页后重新收起：组件实例会被复用（章 → 章不会重新 mount），
+      // 所以不能只在 onMounted 里做一次。
+      onNavigationEnd(() => {
+        collapsed.value = true
+        sync()
       })
     })
 

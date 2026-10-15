@@ -800,44 +800,56 @@ html.theme-orange.dark {
     transition: left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1));
   }
 
-  /* 收起后：工具条跟着滑到最左边 */
+  /* 收起后：工具条跟着滑到最左边。
+     左缘对齐「sasaOrange」下面那条横线的左端——横线是 nav 容器的
+     border/pseudo，可见部分从容器 padding-left（32px）开始。 */
   html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-tools {
-    left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + 10px);
+    left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + 32px);
   }
 
   /* 两个按钮共用一套外观。
-     做成「没有边框、没有底色」的纯图标：颜色跟目录文字一样是主题色
-     （--vp-c-brand-1），尺寸放大到和「持续存在」那行书名的字号一致
-     （--novel-sidebar-title-size），竖直方向也跟它对齐。 */
+     加一圈边框 + 内边距，点下去有按压反馈（:active 时垫一层浅底色）。
+     图标本身仍是 --novel-sidebar-title-size 大小（内容盒 = 字号），
+     边框和 padding 往外长，所以图标尺寸、竖直对齐都不受影响。
+     颜色用目录同款主题色（--vp-c-brand-1）。 */
   .Layout.novel-chapter .novel-sidebar-tools button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    box-sizing: content-box;
     width: var(--novel-sidebar-title-size, 16px);
     height: var(--novel-sidebar-title-size, 16px);
-    padding: 0;
-    border: 0;
-    border-radius: 0;
+    padding: 3px;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 6px;
     background-color: transparent;
     color: var(--vp-c-brand-1);
     font-size: var(--novel-sidebar-title-size, 16px);
     line-height: 1;
     cursor: pointer;
-    transition: color 0.2s ease, opacity 0.2s ease;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
   }
 
-  /* 图标跟着按钮字号走，撑满整个按钮盒子 */
+  /* 图标跟着按钮字号走，撑满内容盒 */
   .Layout.novel-chapter .novel-sidebar-tools button svg {
     width: 1em;
     height: 1em;
   }
 
   .Layout.novel-chapter .novel-sidebar-tools button:hover {
+    border-color: var(--vp-c-brand-2);
     color: var(--vp-c-brand-2);
+  }
+
+  /* 按下时垫一层浅底色，点击有实在的反馈 */
+  .Layout.novel-chapter .novel-sidebar-tools button:active {
+    background-color: var(--vp-c-brand-soft);
+    border-color: var(--vp-c-brand-1);
   }
 
   /* 清空成功：短暂高亮 + 换成对勾，1.2s 后自动还原 */
   .Layout.novel-chapter .novel-history-clear.is-cleared {
+    border-color: var(--vp-c-brand-2);
     color: var(--vp-c-brand-2);
   }
 }
@@ -849,7 +861,7 @@ html.theme-orange.dark {
   }
 
   html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-tools {
-    left: 10px;
+    left: 32px;
   }
 }
 
@@ -862,23 +874,24 @@ html.theme-orange.dark {
    按钮右缘 308 > 272，于是图标和文字被压住。
 
    改法就是把它**往左挪到分界线里侧**：右缘缩进到分界线左边 8px 左右。
-   工具条现在含两个图标（14 + 10 + 14 = 38px），所以左缘 = 272 - 8 - 38 = 226。
+   带边框后单个按钮宽 = 字号 14 + padding 3×2 + border 1×2 = 22px，
+   工具条含两个按钮 = 22 + 10 + 22 = 54px，所以左缘 = 272 - 8 - 54 = 210。
    工具条仍在原来那一带（贴着侧边栏分界线），没有往右边跑 ——
-   只是让开了「本页目录」的图标。 
+   只是让开了「本页目录」的图标。
    ---- */
 @media (min-width: 960px) and (max-width: 1279px) {
   .Layout.novel-chapter .novel-sidebar-tools {
-    /* 右缘落在侧边栏分界线里侧、留 8px 空隙（272 - 8 - 38 = 226）。
+    /* 右缘落在侧边栏分界线里侧、留 8px 空隙（272 - 8 - 54 = 210）。
        用 --vp-sidebar-width 表达，不依赖具体像素。 */
-    left: calc(var(--vp-sidebar-width) - 46px);
+    left: calc(var(--vp-sidebar-width) - 62px);
     right: auto;
-    /* 和 VPLocalNav 同一行：条高 52px，14px 的图标垂直居中后上边距 19px */
-    top: calc(var(--vp-nav-height) + 19px);
+    /* 和 VPLocalNav 同一行：条高 52px，工具条高 22px，垂直居中后上边距 15px */
+    top: calc(var(--vp-nav-height) + 15px);
   }
 
   /* 收起态：侧边栏没了，工具条按惯例滑到页面最左（和 ≥1280px 的收起行为一致） */
   html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-tools {
-    left: 10px;
+    left: 32px;
   }
 }
 
