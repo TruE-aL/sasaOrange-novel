@@ -44,6 +44,21 @@ function canAnimate(): boolean {
 const DURATION_FALLBACK = 700
 const EASING_FALLBACK = 'cubic-bezier(0.4, 0, 0.2, 1)'
 
+/**
+ * 半径安全系数 —— 为什么不能正好用「到最远那个角」的距离：
+ *
+ * 用 1.0 时，半径要到**动画最后一刻（700/700ms）**才刚好够到远角，全程零余量。
+ * 而浏览器真正画出来的最后一帧，未必落在 700ms 那一瞬：主线一忙（低端机、
+ * 卡顿、同时有大图在解码），最后一帧可能停在 600ms 甚至更早，那一刻半径还差
+ * 几个像素够不到角 —— View Transition 紧接着就把快照拆了，那点没盖到的三角就
+ * 直接"跳"成了旧主题，看着就是左下/右下角有个小缺口，明暗切换都有。
+ *
+ * 放大一点点即可：clip-path 的圆超出屏幕是无害的，但有了余量以后，
+ * 半径在**中途**就已经盖满全屏，后面几帧画不画都无所谓了。
+ * 1.05 的余量足够吸收常见掉帧，又不会让动画显得"提前结束"。
+ */
+const RADIUS_SAFETY = 1.05
+
 function readTiming() {
   const styles = getComputedStyle(document.documentElement)
   const raw = styles.getPropertyValue('--novel-appearance-duration').trim()
@@ -98,8 +113,10 @@ export function installAppearanceTransition(
     const rect = target?.getBoundingClientRect?.()
     const x = event?.clientX ?? (rect ? rect.left + rect.width / 2 : window.innerWidth / 2)
     const y = event?.clientY ?? (rect ? rect.top + rect.height / 2 : window.innerHeight / 2)
-    // 盖满全屏所需半径：到最远那个角的距离，少一点斜对角就会露边
-    const radius = Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y))
+    // 盖满全屏所需半径：到最远那个角的距离
+    const radius =
+      Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)) *
+      RADIUS_SAFETY
 
     const transition = document.startViewTransition(toggle)
 
