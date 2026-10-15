@@ -1,7 +1,14 @@
-# Cloudflare Pages 配置（Wrangler）
-# 本文件放在项目根目录，Wrangler 会从当前目录向上查找它。
+# ── GitHub Actions 部署（推荐）─────────────────────────────
+# 已配置 .github/workflows/deploy.yml：推送到 main 时自动构建并部署到
+# Cloudflare Pages。需要在仓库里配置两个 Secrets：
 #
-# ── 怎么发布 ────────────────────────────────────────────────
+#   CLOUDFLARE_API_TOKEN    Cloudflare → My Profile → API Tokens
+#                           权限：Account / Cloudflare Pages / Edit
+#   CLOUDFLARE_ACCOUNT_ID   Cloudflare 控制台右侧栏的 Account ID
+#
+# 配置位置：仓库 Settings → Secrets and variables → Actions
+#
+# ── 怎么手动发布（备选，仍可用）────────────────────────────
 # 在**项目根目录**（也就是本文件所在目录）执行：
 #
 #   首次：
@@ -9,22 +16,20 @@
 #     npx wrangler pages project create sasaorange-novel   # 项目不存在时才需要
 #
 #   之后每次发布：
-#     npm run docs:build                       # 生成 docs/.vitepress/dist
+#     pnpm docs:build                          # 生成 docs/.vitepress/dist
 #     npx wrangler pages deploy                # 读取本文件，把 dist 传上去
 #
 #   或者一条命令搞定（= 上面两步）：
-#     npm run docs:deploy
+#     pnpm docs:deploy
 #
-# 构建产物（docs/.vitepress/dist）在 .gitignore 里，所以必须先本地构建再上传；
-# 想先在本机确认效果就用 npm run docs:preview。
+# 构建产物（docs/.vitepress/dist）在 .gitignore 里，所以必须先构建再上传；
+# 想先在本机确认效果就用 pnpm docs:preview。
 #
 # ── 另一种做法：连 Git 仓库自动构建 ──────────────────────────
 # 在 Cloudflare 控制台新建 Pages 项目并连上这个仓库，填：
-#   构建命令：npm run docs:build
+#   构建命令：pnpm docs:build
 #   输出目录：docs/.vitepress/dist
-# 注意：它的构建环境没有 ImageMagick，同步脚本会跳过封面压缩并打印一行提示，
-# 站点本身不受影响（那两个图标文件已经入库，所以不会缺）。
-# 采用这种方式时，本文件只需保留 name 与 pages_build_output_dir 两项。
+# 注意：若同时启用了本仓库的 GitHub Actions，会造成重复部署，二选一即可。
 
 # 项目名，同时决定默认域名 <name>.pages.dev
 # 首次部署会用它创建/关联项目，之后**不能改名**（要换只能重建项目），所以先想好。

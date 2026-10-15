@@ -8,10 +8,10 @@
 ## 日常使用
 
 ```bash
-npm run docs:dev      # 本地预览（自动同步 + 监听作品目录），默认 http://localhost:5173
-npm run docs:build    # 构建静态站到 docs/.vitepress/dist
-npm run docs:preview  # 预览已构建的站点
-npm run docs:sync     # 只更新生成的书架页/作品页，不启动服务
+pnpm docs:dev         # 本地预览（自动同步 + 监听作品目录），默认 http://localhost:5173
+pnpm docs:build       # 构建静态站到 docs/.vitepress/dist
+pnpm docs:preview     # 预览已构建的站点
+pnpm docs:sync        # 只更新生成的书架页/作品页，不启动服务
 ```
 
 `docs:dev` 会先同步一次并**一直监听 `docs/novels/`**：改文字即时生效；
@@ -66,7 +66,7 @@ Cloudflare Pages 这类云构建环境都能出图，所以图标和封面不必
 1. 复制 `docs/novels/_模板/` 成 `docs/novels/<新书名>/`；
 2. 改 `novel.json`（`slug` 建议用拼音或英文，**发布后不要改**）；
 3. 把章节按 `01-第一章.md`、`02-第二章.md`…… 命名放进去，每篇正文第一个 `# 标题` 是章节名；
-4. 跑 `npm run docs:dev`，书架首页会自动多出一张卡片。
+4. 跑 `pnpm docs:dev`，书架首页会自动多出一张卡片。
 
 章节数量不限，顺序永远是「文件名前缀小的在前」。想在中间插一章，就在那个编号上插，
 再把后面的文件依次顺延。
@@ -309,7 +309,7 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 读者在阅读设置里切到「黑体」时，就不再需要这个字体文件了。
 
 ```bash
-npm run fonts:build     # 重新生成子集（新章节出现生僻字时跑一次）
+pnpm fonts:build        # 重新生成子集（新章节出现生僻字时跑一次）
 ```
 
 这个脚本从系统字体 `NotoSerifCJK-Regular.ttc` 里取字（可用环境变量
@@ -337,26 +337,69 @@ npm run fonts:build     # 重新生成子集（新章节出现生僻字时跑一
 
 ## 部署
 
-项目根目录的 `wrangler.toml` 里已经写好 Cloudflare Pages 的配置：
+站点部署在 **Cloudflare Pages**，项目名 `sasaorange-novel`，
+正式地址是 `https://sasaorange-novel.pages.dev`。
+
+配置写在项目根目录的 `wrangler.toml`：
 
 ```toml
 name = "sasaorange-novel"                  # 决定默认域名 sasaorange-novel.pages.dev
 pages_build_output_dir = "docs/.vitepress/dist"
 ```
 
-两种发布方式：
+### 自动部署（推荐，日常就用这个）
 
-1. **本地发布**：`npx wrangler login` 登录一次，然后 `npm run docs:deploy`
-   （等于 `npm run docs:build && npx wrangler pages deploy`）。
-   首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
-2. **Pages 连 Git 仓库**：在 Cloudflare 控制台选构建命令 `npm run docs:build`、
-   输出目录 `docs/.vitepress/dist`。图片处理用的是 sharp（npm 依赖，卸载装时一并装好），
-   云端没有 ImageMagick 也能出图，不需要额外配置。
+仓库里已经配好 `.github/workflows/deploy.yml`：**只要往 `main` 推代码，就会自动构建并发布**，
+不用在本地做任何事。整个流程是：
 
-`name` 决定了默认域名，首次部署后不能改，想换的话在部署前改。
+```
+push 到 main
+  → 装 pnpm（读 package.json 的 packageManager 字段）
+  → pnpm install --frozen-lockfile
+  → pnpm docs:build
+  → wrangler pages deploy → sasaorange-novel.pages.dev
+```
 
-部署前记得把 `docs/site.json` 里的 `url` 改成真实域名，`og:image`、canonical、
-订阅源和站点地图里的绝对链接才正确。
+想手动跑一次，去 **Actions → Deploy to Cloudflare Pages → Run workflow**。
+
+它依赖仓库里的两个 Secrets（**Settings → Secrets and variables → Actions**），
+首次配置时需要自己建：
+
+| Secret | 从哪来 | 需要的权限 |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → Create Custom Token | `Account` / `Cloudflare Pages` / **Edit** |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages → 右侧栏 Account ID | — |
+
+> 别用 Global API Key，范围太大；自定义 Token 只开 Pages 的 Edit 就够。
+
+**「推上去没反应」先查这里**：Secrets 名字拼错（大小写敏感）、Token 权限没给 Edit、
+或者 Cloudflare 上项目名不叫 `sasaorange-novel`（名字对不上 wrangler 会去新建一个项目）。
+
+### 手动部署（备选）
+
+不想等 CI、或者要在没配 Actions 的环境发一次：
+
+```bash
+npx wrangler login        # 登录一次即可
+pnpm docs:deploy          # = pnpm docs:build && npx wrangler pages deploy
+```
+
+首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
+
+### 另一种做法：Cloudflare 连 Git 仓库
+
+在 Cloudflare 控制台新建 Pages 项目并连上这个仓库，构建命令 `pnpm docs:build`、
+输出目录 `docs/.vitepress/dist`。
+
+⚠️ **和上面的 GitHub Actions 二选一**——两个都开会对同一次推送部署两遍。
+图片处理用的是 sharp（devDependency，装依赖时一并装好），云端没有 ImageMagick 也能出图。
+
+### 几个注意点
+
+- `name` 决定默认域名，**首次部署后不能改**，想换的话得在部署前改（否则只能重建项目）。
+- 部署前记得把 `docs/site.json` 里的 `url` 改成真实域名，`og:image`、canonical、
+  订阅源和站点地图里的绝对链接才正确。
+- 构建产物 `docs/.vitepress/dist` 在 `.gitignore` 里，所以无论哪条路径都是**先构建再上传**。
 
 ## 出问题了怎么排查
 
@@ -366,13 +409,13 @@ pages_build_output_dir = "docs/.vitepress/dist"
 ```bash
 # 1. Ctrl+C 停掉正在跑的开发服务器（必须停，运行中清缓存没用）
 # 2. 清缓存
-npm run docs:clean
+pnpm docs:clean
 # 3. 重新启动，然后在浏览器里硬刷新（手机上：关掉标签页重新打开，或清除站点数据）
-npm run docs:dev
+pnpm docs:dev
 ```
 
 还不行就看浏览器控制台的红色报错——那是客户端真正抛出的错误，把第一行发我就能定位。
 
 **只用 curl 检查时注意**：开发服务器对任意路径都返回那个只有
 `<div id="app"></div>` 的空壳（内容由浏览器端渲染），所以 curl 看不到正文是正常的；
-要确认产物有没有内容，用 `npm run docs:build && npm run docs:preview`。
+要确认产物有没有内容，用 `pnpm docs:build && pnpm docs:preview`。
