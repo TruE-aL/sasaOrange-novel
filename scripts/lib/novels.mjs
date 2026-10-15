@@ -75,28 +75,29 @@ function cnToArabic(run) {
 
 const toArabicLabel = (label) => label.replace(/[零一二三四五六七八九十百千两]+/g, cnToArabic)
 
-function readLabel(file, sourceDir) {
-  const raw = readText(path.join(sourceDir, file))
+/** 拆出正文部分（去掉 frontmatter），label / title / 字数都从这一份文本里算 */
+const bodyOf = (raw) => raw.replace(/^---\r?\n[\s\S]*?\r?\n---/, '')
+
+function readLabel(file, raw) {
   const frontmatter = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   const label = frontmatter?.[1].match(/^label:\s*(.+)$/m)
   if (label) return stripQuotes(label[1])
   return file.replace(/\.md$/, '').replace(/^\d+\s*[-_.、]\s*/, '')
 }
 
-function readTitle(file, sourceDir) {
-  const raw = readText(path.join(sourceDir, file))
+function readTitle(raw) {
   const frontmatter = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/)
   const title = frontmatter?.[1].match(/^title:\s*(.+)$/m)
   if (title) return stripQuotes(title[1])
-  const heading = raw.replace(/^---\r?\n[\s\S]*?\r?\n---/, '').match(/^#\s+(.+)$/m)
+  const heading = bodyOf(raw).match(/^#\s+(.+)$/m)
   return heading ? heading[1].trim() : ''
 }
 
 /** 拆成 { 章节号, 章节名 }，供目录两栏排版和「上一章/下一章」使用 */
-function splitLabel(file, sourceDir) {
-  const rawLabel = readLabel(file, sourceDir)
+function splitLabel(file, raw) {
+  const rawLabel = readLabel(file, raw)
   const label = toArabicLabel(rawLabel)
-  const rawTitle = readTitle(file, sourceDir)
+  const rawTitle = readTitle(raw)
   if (!rawTitle) return { label: '', title: label }
   if (!label) return { label: '', title: rawTitle }
 
@@ -129,7 +130,7 @@ function splitLabel(file, sourceDir) {
 
 /** 正文里的汉字数，不含标题行和 frontmatter */
 function countWords(raw) {
-  const body = raw.replace(/^---\r?\n[\s\S]*?\r?\n---/, '').replace(/^#.*$/gm, '')
+  const body = bodyOf(raw).replace(/^#.*$/gm, '')
   return (body.match(/[\u3400-\u4dbf\u4e00-\u9fff]/g) || []).length
 }
 
@@ -198,19 +199,31 @@ export function loadNovels(contentDir, options = {}) {
     let words = 0
 
     for (const file of chapterFiles) {
-      const { label, title: name } = splitLabel(file, sourceDir)
+      const filePath = path.join(sourceDir, file)
+      const raw = readText(filePath)
+      const { label, title: name } = splitLabel(file, raw)
       const text = name || label
       const listText = label ? `${label}　${text}` : text
+      const chapterWords = countWords(raw)
+      // 文件的最后修改时间，RSS 的 pubDate 用它（不额外维护「更新日期」字段）
+      let mtime = 0
+      try {
+        mtime = fs.statSync(filePath).mtimeMs
+      } catch {
+        mtime = 0
+      }
       chapters.push({
         file,
         label,
         title: text,
         href: `${base}/${file.replace(/\.md$/, '')}`,
         listText,
-        pagerText: listText
+        pagerText: listText,
+        words: chapterWords,
+        mtime
       })
       if (!/^第\d+章/.test(label)) extras.push(label || text)
-      words += countWords(readText(path.join(sourceDir, file)))
+      words += chapterWords
     }
 
     const coverFile = meta.cover || 'cover.png'
@@ -235,6 +248,8 @@ export function loadNovels(contentDir, options = {}) {
       licensePage: licenseFile ? `${base}/license` : '',
       coverFile,
       cover: fs.existsSync(path.join(sourceDir, coverFile)) ? `/novels/${slug}/cover.jpg` : '',
+      // 全书最近一次改动时间（章节文件 mtime 的最大值），RSS / sitemap 用
+      updated: chapters.reduce((latest, chapter) => Math.max(latest, chapter.mtime), 0),
       chapters,
       stats: {
         chapters: chapters.filter((chapter) => /^第\d+章/.test(chapter.label)).length,

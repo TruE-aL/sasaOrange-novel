@@ -5,6 +5,8 @@ export type Chapter = {
   href: string
   listText: string
   pagerText: string
+  words: number
+  mtime: number
 }
 
 export type Novel = {
@@ -24,20 +26,36 @@ export type Novel = {
   licensePage: string
   coverFile: string
   cover: string
+  updated: number
   chapters: Chapter[]
   stats: { chapters: number; words: number; extras: string[] }
 }
 
 export type Section = { id: string; title: string; description?: string }
 
+export type CommentConfig = {
+  provider?: string
+  repo?: string
+  repoId?: string
+  category?: string
+  categoryId?: string
+  mapping?: string
+  reactionsEnabled?: string
+  inputPosition?: string
+  theme?: string
+  lang?: string
+}
+
 export type Site = {
   title: string
   author: string
   icon?: string
+  url?: string
   heroTitle?: string
   heroSubtitle?: string
   tagline: string
   footer?: { message?: string; copyright?: string }
+  comment?: CommentConfig
   sections: Section[]
 }
 

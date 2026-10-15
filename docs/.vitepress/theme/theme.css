@@ -1,5 +1,5 @@
 /**
- * 《持续存在》阅读站主题
+ * sasaOrange 书屋主题
  *
  * 三套配色，读者可以随时切换：
  *   暖黄（默认，护眼）—— 直接写在 :root / .dark 里，不加任何 class
@@ -9,19 +9,22 @@
  * 切换按钮在顶栏（手机在菜单展开后的底部），选择记在 localStorage: novel-color-scheme。
  * 默认走暖黄，所以没有 theme-* 这些 class 时就是暖色。
  *
- * 0. 阅读用中文字体          6. 导航与目录
- * 1. 暖黄色系（默认）        7. 小说章节页排版
- * 2. 淡蓝色系（可切换）      8. 切页入场动画
- * 3. 淡橙红色系（可切换）    9. 顶部阅读进度条
- * 4. 配色切换按钮           10. 切页加载条
- * 5. 首页                   11. 作品首页
+ * 目录
+ *   0. 阅读用中文字体          7. 小说章节页排版
+ *   1. 暖黄色系（默认）        8. 切页入场动画
+ *   2. 淡蓝色系（可切换）      9. 顶部阅读进度条
+ *   3. 淡橙红色系（可切换）   10. 切页加载条
+ *   4. 配色切换按钮 / 阅读设置 11. 书架首页
+ *   5. 首页 hero              12. 目录（侧边栏）
+ *   6. 正文页页尾（落款 / 评论）
  */
 
 /* ============================================================
    0. 阅读用中文字体
    思源宋体（Noto Serif CJK SC）的子集，见 docs/public/fonts/LICENSE.txt，
    用 `npm run fonts:build` 重新生成。
-   只有选了「宋体」的读者才会真正下载这个文件。
+   默认字体就是它（下面的 --vp-font-family-base 首选），读者在阅读设置里
+   可以切回黑体；切到黑体时不会再多下一个字体文件。
    ============================================================ */
 
 @font-face {
@@ -83,6 +86,12 @@ html.reader-sans {
   --novel-hero-wash: rgba(217, 164, 92, 0.16);
   --novel-selection: rgba(217, 164, 92, 0.35);
 
+  /* 阴影：跟着配色走的一层暖色调（见下面 .dark 里换的黑影） */
+  --novel-shadow-rgb: 96, 70, 36;
+  --novel-shadow-sm: 0 2px 6px rgba(var(--novel-shadow-rgb), 0.07);
+  --novel-shadow-md: 0 12px 26px rgba(var(--novel-shadow-rgb), 0.13);
+  --novel-shadow-lg: 0 24px 52px rgba(var(--novel-shadow-rgb), 0.18);
+
   /* 首页大标题的渐变色 */
   --vp-home-hero-name-color: transparent;
   --vp-home-hero-name-background: linear-gradient(120deg, #8a5a18 25%, #d9a45c);
@@ -138,6 +147,16 @@ html.reader-sans {
   --vp-button-alt-hover-text: #ece2d0;
 }
 
+/* 三种深色模式统一用黑影：浅色那层暖调阴影在深底上看不出来 */
+.dark,
+html.theme-orange.dark,
+html.theme-blue.dark {
+  --novel-shadow-rgb: 0, 0, 0;
+  --novel-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --novel-shadow-md: 0 14px 30px rgba(0, 0, 0, 0.45);
+  --novel-shadow-lg: 0 26px 56px rgba(0, 0, 0, 0.5);
+}
+
 /* ============================================================
    2. 淡蓝色系（可切换）
    配色沿用作品许可页的淡蓝，切过去时和许可卡片是一套
@@ -176,6 +195,7 @@ html.theme-blue {
 
   --novel-hero-wash: rgba(74, 144, 194, 0.1);
   --novel-selection: rgba(74, 144, 194, 0.26);
+  --novel-shadow-rgb: 40, 86, 122;
 
   --vp-home-hero-name-background: linear-gradient(120deg, var(--novel-blue-700) 25%, var(--novel-blue-400));
 
@@ -266,6 +286,7 @@ html.theme-orange {
 
   --novel-hero-wash: rgba(240, 138, 99, 0.16);
   --novel-selection: rgba(240, 138, 99, 0.32);
+  --novel-shadow-rgb: 150, 62, 30;
 
   --vp-home-hero-name-background: linear-gradient(120deg, #b83c1f 25%, #f0a072);
 
@@ -320,7 +341,7 @@ html.theme-orange.dark {
 }
 
 /* ============================================================
-   4. 配色切换按钮
+   4. 配色切换按钮 / 阅读设置
    三个小圆点：暖黄 / 淡橙红 / 淡蓝，当前生效的那个带一圈描边
    ============================================================ */
 
@@ -433,7 +454,7 @@ html.theme-orange.dark {
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
   background-color: var(--vp-c-bg-elv);
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.14);
+  box-shadow: var(--novel-shadow-md);
 }
 
 .reader-title {
@@ -516,25 +537,66 @@ html.theme-orange.dark {
 }
 
 /* ============================================================
-   5. 首页
+   5. 首页 hero（扉页）
+   站名居中排成一页「扉页」的样子：大字拉开字距，下面一道渐隐的短线收尾。
    ============================================================ */
 
-/* 首屏铺一层极淡的主题色，往下渐隐 */
 .VPHero {
-  background-image: linear-gradient(180deg, var(--novel-hero-wash), transparent 72%);
+  padding: 76px 0 34px;
+  background-image: linear-gradient(180deg, var(--novel-hero-wash), transparent 78%);
 }
 
-/* 首页 hero 的大字和小字统一左对齐。
-   注意 `.name` 是 flex 项且宽度 fit-content，靠 text-align 是没法把它居中的，
-   要让两行都居中得改 .heading 的 align-items，这里按需求保持左对齐。 */
-
-/* 主按钮：一点投影，悬停微微上浮 */
-.VPButton.brand {
-  box-shadow: 0 8px 20px rgba(120, 82, 24, 0.18);
+.VPHero .container {
+  justify-content: center;
 }
 
-.VPButton.brand:hover {
-  transform: translateY(-1px);
+.VPHero .main {
+  align-items: center;
+  max-width: 760px;
+  text-align: center;
+}
+
+.VPHero .heading {
+  align-items: center;
+}
+
+.VPHero .name {
+  font-size: 2.7rem;
+  letter-spacing: 0.16em;
+  /* 末字后面会多出一份字距，补回来才是视觉居中 */
+  text-indent: 0.16em;
+}
+
+.VPHero .tagline {
+  max-width: 36em;
+  margin: 16px auto 0;
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
+/* 扉页下的一道短线：两端渐隐 */
+.VPHero .tagline::after {
+  content: '';
+  display: block;
+  width: 68px;
+  height: 3px;
+  margin: 28px auto 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--vp-c-brand-3), transparent);
+}
+
+@media (max-width: 640px) {
+  .VPHero {
+    padding: 52px 0 22px;
+  }
+
+  .VPHero .name {
+    font-size: 2rem;
+  }
+
+  .VPHero .tagline {
+    font-size: 0.92rem;
+  }
 }
 
 /* 首页「关于」里的引用块，做成主题色卡片 */
@@ -552,18 +614,490 @@ html.theme-orange.dark {
 }
 
 /* ============================================================
-   6. 导航与目录
+   6. 正文页页尾（落款 / 评论）
    ============================================================ */
 
-/* 目录分组标题「目录」：拉开字距，像书页的栏头 */
+/* 「本章完 · 约 N 字」：两侧渐隐的横线夹一行小字 */
+.novel-chapter .VPDoc .content-container {
+  display: flex;
+  flex-direction: column;
+}
+
+/* doc-after 插槽在 DOM 上排在「上一章/下一章」之后，这里用 order 把视觉顺序调回来：
+   正文 → 落款 → 翻章按钮 → 评论区 */
+.novel-chapter .VPDoc .content-container > .main {
+  order: 1;
+}
+
+.novel-chapter .novel-chapter-end {
+  order: 2;
+}
+
+.novel-chapter .VPDoc .content-container > .VPDocFooter {
+  order: 3;
+}
+
+.novel-chapter .novel-comments {
+  order: 4;
+}
+
+.novel-chapter-end {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  margin: 4em 0 1.4em;
+}
+
+.novel-chapter-end-rule {
+  flex: 0 1 130px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--vp-c-divider));
+}
+
+.novel-chapter-end-rule:last-child {
+  background: linear-gradient(90deg, var(--vp-c-divider), transparent);
+}
+
+.novel-chapter-end-text {
+  flex: 0 0 auto;
+  font-size: 13px;
+  letter-spacing: 0.22em;
+  color: var(--vp-c-text-3);
+}
+
+/* 评论区：和正文之间拉一条分隔线 */
+.novel-comments {
+  margin-top: 3em;
+  padding-top: 2em;
+  border-top: 1px solid var(--vp-c-divider);
+}
+
+.novel-comments .giscus {
+  min-height: 180px;
+}
+
+/* ============================================================
+   7. 小说章节页排版
+   config.mts 会给章节页写 frontmatter `pageClass: novel-chapter`，
+   主题把它加在 Layout 根节点上，所以下面只影响章节页，
+   不会影响书架首页与许可页。
+   ============================================================ */
+
+.novel-chapter .vp-doc {
+  font-size: var(--novel-reader-size, 20px);
+  line-height: var(--novel-reader-leading, 1.95);
+}
+
+/* 中文段落首行缩进两格，两端对齐（中文长段读起来更整齐）。
+   行距必须也直接写在 p 上：VitePress 的 `.vp-doc p{line-height:1.75}` 是直接设值，
+   会盖过从容器继承下来的行距，只改容器是没用的（这就是行距滑块之前不生效的原因）。 */
+.novel-chapter .vp-doc p {
+  margin: 0.8em 0;
+  text-indent: 2em;
+  text-align: justify;
+  line-height: var(--novel-reader-leading, 1.95);
+}
+
+/* 章名居中，下方一道主题色短线。
+   注意：h1 并不是 .vp-doc 的直接子元素（中间还有一层 div），
+   所以这里用后代选择器，写成 `> h1` 是不会生效的。 */
+.novel-chapter .vp-doc h1 {
+  text-align: center;
+  font-size: 1.9em;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  margin: 0.5em 0 2.2em;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+.novel-chapter .vp-doc h1::after {
+  content: '';
+  display: block;
+  width: 3em;
+  height: 3px;
+  margin: 0.7em auto 0;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
+}
+
+/* 行内代码（如 [INFO] 日志）：不参与首行缩进，并且允许折行。
+   原来是 nowrap，短代码确实不会被拆开，但像
+   `[INFO]ID: Homer-a291d4 意识涌现模型已销毁，格式化存储栈已归还。`
+   这种整行都是代码的日志会直接顶出手机屏幕，所以改成可以换行，
+   长串（ID、路径）在必要时才断开。只作用于行内代码，代码块不受影响。 */
+.novel-chapter .vp-doc :not(pre) > code {
+  text-indent: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   8. 切页入场动画
+
+   效果借自 KeqingMoe/sakurairo 主题的 Post.vue：
+   正文整块从下方淡入（0.5s），章名再单独「落下来」（1s，前一半先藏着）。
+
+   关键点：动画挂在**页面组件的根节点**上。VitePress 的 .vp-doc 外层容器是常驻的，
+   但它里面的页面组件每次切页都会重建，所以这条纯 CSS 动画会自动重播，
+   不需要任何 JS 钩子——也就不怕钩子没装上。
+   ============================================================ */
+
+@keyframes novel-page-in {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes novel-title-in {
+  0%,
+  45% {
+    opacity: 0;
+    transform: translateY(-60%);
+  }
+
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 章节页 / 许可页：Content 的 .vp-doc 下面一层就是页面根节点；
+   首页：外面还套了一层 VPHomeContent */
+.novel-chapter .vp-doc > div,
+.novel-license .vp-doc > div,
+.VPHomeContent.vp-doc > div > div {
+  animation: novel-page-in 0.5s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+
+/* 章名单独淡入：先藏一会儿，等正文升上来之后再落下 */
+.novel-chapter .vp-doc > div > h1 {
+  animation: novel-title-in 1s both;
+}
+
+/* 系统开了「减弱动效」：一律不动，包括各种 hover 位移 */
+@media (prefers-reduced-motion: reduce) {
+  .novel-chapter .vp-doc > div,
+  .novel-license .vp-doc > div,
+  .VPHomeContent.vp-doc > div > div,
+  .novel-chapter .vp-doc > div > h1,
+  .novel-progress,
+  .novel-navprogress {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* ============================================================
+   9. 顶部阅读进度条
+
+   借鉴 sakurairo 的 .iro-scroll-percent：固定在顶端的一条细线，
+   宽度=已读百分比。只在正文页显示（pageClass 为 novel-chapter）。
+   ============================================================ */
+
+.novel-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  display: none;
+  height: 3px;
+  background-image: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
+  transition: width 0.12s linear, opacity 0.25s ease;
+}
+
+/* 正文页才亮出来；首页、许可页这类不需要 */
+.novel-chapter .novel-progress {
+  display: block;
+}
+
+/* 切页加载条出现时把它藏起来，免得两条线在顶端交叉闪 */
+body:has(.novel-navprogress) .novel-progress {
+  opacity: 0;
+}
+
+/* ============================================================
+   10. 切页时的顶部加载条
+
+   借鉴 sakurairo 用的 vitepress-plugin-nprogress，实现见 theme/NavProgress.ts。
+   比阅读进度条细 1px、层级更高，两者叠在同一位置时能分出来。
+   ============================================================ */
+
+.novel-navprogress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 110;
+  width: 0;
+  height: 2px;
+  opacity: 1;
+  background-image: linear-gradient(90deg, var(--vp-c-brand-1), var(--vp-c-brand-3));
+  transition: width 0.2s ease, opacity 0.25s ease;
+}
+
+/* ============================================================
+   11. 书架首页
+
+   卡片是同步脚本生成的原生 HTML（scripts/sync-content.mjs），
+   结构：a.shelf-card > span.shelf-cover(+img/铅字封面/期数标) + span.shelf-body。
+   都在 .VPHomeContent.vp-doc 里，默认的 `.vp-doc a` 会给链接加下划线，
+   所以选择器都带上 .vp-doc 前缀提高优先级。
+   ============================================================ */
+
+/* 分组标题：像书架上的标签，前面一小段主题色竖条，后面一条渐隐的横线 */
+.VPHomeContent.vp-doc h2.shelf-section {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 3em 0 1.3em;
+  padding-top: 0;
+  border-top: none;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+.VPHomeContent.vp-doc h2.shelf-section::before {
+  content: '';
+  flex: 0 0 auto;
+  width: 6px;
+  height: 1.05em;
+  border-radius: 3px;
+  background: linear-gradient(180deg, var(--vp-c-brand-2), var(--vp-c-brand-3));
+}
+
+.VPHomeContent.vp-doc h2.shelf-section::after {
+  content: '';
+  flex: 1 1 auto;
+  height: 1px;
+  background: linear-gradient(90deg, var(--vp-c-divider), transparent);
+}
+
+/* 分组下的一行小字 */
+.VPHomeContent.vp-doc .shelf-section-desc {
+  margin: -0.6em 0 0;
+  font-size: 0.85rem;
+  color: var(--vp-c-text-3);
+}
+
+/* 书架网格 */
+.vp-doc .shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 30px 22px;
+  margin: 1.4em 0 2.6em;
+}
+
+/* 一张书卡：封面在上、文字在下，整张卡片可点 */
+.vp-doc .shelf-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: inherit;
+  font-weight: 400;
+  text-decoration: none;
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.vp-doc .shelf-card:hover {
+  transform: translateY(-4px);
+}
+
+.vp-doc .shelf-card:focus-visible {
+  outline: none;
+  transform: translateY(-4px);
+}
+
+/* 封面：固定 3:4，圆角 + 一层柔和投影 */
+.vp-doc .shelf-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 3 / 4;
+  overflow: hidden;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 14px;
+  background-color: var(--vp-c-bg-soft);
+  box-shadow: var(--novel-shadow-sm);
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.vp-doc .shelf-card:hover .shelf-cover,
+.vp-doc .shelf-card:focus-visible .shelf-cover {
+  border-color: var(--vp-c-brand-2);
+  box-shadow: var(--novel-shadow-lg);
+}
+
+.vp-doc .shelf-cover-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+.vp-doc .shelf-card:hover .shelf-cover-img {
+  transform: scale(1.04);
+}
+
+/* 没有封面的书：排一张「铅字封面」，用主题色渐变 + 书名，而不是留白 */
+.vp-doc .shelf-cover-blank {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 20px;
+  background-image: linear-gradient(150deg, var(--vp-c-brand-2), var(--vp-c-brand-3));
+  color: var(--vp-button-brand-text);
+  text-align: center;
+}
+
+.vp-doc .shelf-cover-name {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.4;
+}
+
+.vp-doc .shelf-cover-author {
+  font-size: 0.78rem;
+  letter-spacing: 0.1em;
+  opacity: 0.82;
+}
+
+/* 封面右上角的状态标（连载中 / 已完结 / 语录集…） */
+.vp-doc .shelf-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--vp-c-bg) 82%, transparent);
+  color: var(--vp-c-text-2);
+  font-size: 11.5px;
+  letter-spacing: 0.04em;
+  backdrop-filter: blur(4px);
+}
+
+/* 封面下方的文字块 */
+.vp-doc .shelf-body {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.vp-doc .shelf-title {
+  font-size: 1.04rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--vp-c-text-1);
+}
+
+.vp-doc .shelf-meta {
+  font-size: 0.76rem;
+  letter-spacing: 0.02em;
+  color: var(--vp-c-text-3);
+}
+
+.vp-doc .shelf-desc {
+  display: -webkit-box;
+  overflow: hidden;
+  font-size: 0.85rem;
+  line-height: 1.65;
+  color: var(--vp-c-text-2);
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.vp-doc .shelf-more {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 3px;
+  font-size: 0.82rem;
+  color: var(--vp-c-brand-1);
+}
+
+.vp-doc .shelf-arrow {
+  transition: transform 0.25s ease;
+}
+
+.vp-doc .shelf-card:hover .shelf-arrow {
+  transform: translateX(4px);
+}
+
+/* 有阅读进度的书：换成「继续阅读」，封面加一圈主题色细环（客户端加 .is-continuing） */
+.vp-doc .shelf-card.is-continuing .shelf-more {
+  font-weight: 600;
+}
+
+.vp-doc .shelf-card.is-continuing .shelf-cover {
+  border-color: var(--vp-c-brand-2);
+}
+
+.vp-doc .shelf-card.is-continuing .shelf-cover::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--vp-c-brand-2);
+  border-radius: inherit;
+  pointer-events: none;
+}
+
+/* 手机上排成整齐的两列 */
+@media (max-width: 640px) {
+  .vp-doc .shelf-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 16px;
+  }
+
+  .vp-doc .shelf-cover-name {
+    font-size: 1.15rem;
+  }
+
+  .vp-doc .shelf-desc {
+    -webkit-line-clamp: 2;
+  }
+}
+
+/* 读者关掉了动效：各种位移都去掉 */
+@media (prefers-reduced-motion: reduce) {
+  .vp-doc .shelf-card,
+  .vp-doc .shelf-cover,
+  .vp-doc .shelf-cover-img,
+  .vp-doc .shelf-arrow {
+    transition: none;
+  }
+
+  .vp-doc .shelf-card:hover,
+  .vp-doc .shelf-card:focus-visible,
+  .vp-doc .shelf-card:hover .shelf-cover-img,
+  .vp-doc .shelf-card:hover .shelf-arrow {
+    transform: none;
+  }
+}
+
+/* ============================================================
+   12. 目录（侧边栏）
+
+   章节项分两截排版，像书前的目录页：章节号一列（小字淡色），章节名右侧对齐。
+   读过的章节在名字后面点一个小圆点（客户端加 .is-read）。
+   ============================================================ */
+
 .VPSidebar .VPSidebarItem.level-0 > .item > .text {
   letter-spacing: 0.14em;
   color: var(--vp-c-brand-1);
 }
 
-/* 目录项：章节号是小字、淡色的一列，章节名在它右边对齐成一列。
-   用 flex + gap 固定间隔，这样不管章节号是「第1章」还是「第11章」，
-   它们和章节名之间都留得出空隙，不会顶在一起。 */
 .VPSidebar .VPSidebarItem.level-1 .text {
   display: flex;
   align-items: baseline;
@@ -580,6 +1114,19 @@ html.theme-orange.dark {
 
 .VPSidebar .VPSidebarItem.level-1 .toc-title {
   letter-spacing: 0.02em;
+}
+
+/* 读过的章节：章节名后面一枚小圆点 */
+.VPSidebar .VPSidebarItem.level-1.is-read .toc-title::after {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-left: 8px;
+  border-radius: 50%;
+  background-color: var(--vp-c-brand-3);
+  vertical-align: middle;
+  opacity: 0.6;
 }
 
 /* 章节项：悬停和当前章节都垫一层主题色底色 */
@@ -626,316 +1173,4 @@ html.theme-orange.dark {
 
 .VPFooter .message a:hover {
   text-decoration: underline;
-}
-
-/* ============================================================
-   7. 小说章节页排版
-   同步脚本会给章节页写 frontmatter `pageClass: novel-chapter`，
-   主题把它加在 Layout 根节点上，所以下面只影响章节页，
-   不会影响书架首页、作品首页和许可页。
-   ============================================================ */
-
-.novel-chapter .vp-doc {
-  font-size: var(--novel-reader-size, 20px);
-  line-height: var(--novel-reader-leading, 1.95);
-}
-
-/* 中文段落首行缩进两格。
-   行距必须也直接写在 p 上：VitePress 的 `.vp-doc p{line-height:1.75}` 是直接设值，
-   会盖过从容器继承下来的行距，只改容器是没用的（这就是行距滑块之前不生效的原因）。 */
-.novel-chapter .vp-doc p {
-  margin: 0.8em 0;
-  text-indent: 2em;
-  line-height: var(--novel-reader-leading, 1.95);
-}
-
-/* 章名居中，下方一道主题色短线。
-   注意：h1 并不是 .vp-doc 的直接子元素（中间还有一层 div），
-   所以这里用后代选择器，写成 `> h1` 是不会生效的。 */
-.novel-chapter .vp-doc h1 {
-  text-align: center;
-  font-size: 1.9em;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  margin: 0.5em 0 2.2em;
-  padding-bottom: 0;
-  border-bottom: none;
-}
-
-.novel-chapter .vp-doc h1::after {
-  content: '';
-  display: block;
-  width: 3em;
-  height: 3px;
-  margin: 0.7em auto 0;
-  border-radius: 2px;
-  background: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
-}
-
-/* 行内代码（如 [INFO] 日志）：不参与首行缩进，并且允许折行。
-   原来是 nowrap，短代码确实不会被拆开，但像
-   `[INFO]ID: Homer-a291d4 意识涌现模型已销毁，格式化存储栈已归还。`
-   这种整行都是代码的日志会直接顶出手机屏幕，所以改成可以换行，
-   长串（ID、路径）在必要时才断开。只作用于行内代码，代码块不受影响。 */
-.novel-chapter .vp-doc :not(pre) > code {
-  text-indent: 0;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-}
-
-/* ============================================================
-   8. 切页入场动画
-
-   效果借鉴 KeqingMoe/sakurairo 主题的 Post.vue：
-   正文整块从下方 50px 处淡入（1s），章名再单独「落下来」（2s，前一半先藏着）。
-
-   关键点：动画挂在**页面组件的根节点**上。VitePress 的 .vp-doc 外层容器是常驻的，
-   但它里面的页面组件每次切页都会重建，所以这条纯 CSS 动画会自动重播，
-   不需要任何 JS 钩子——也就不怕钩子没装上。
-   ============================================================ */
-
-@keyframes novel-page-in {
-  from {
-    opacity: 0;
-    transform: translateY(50px);
-  }
-
-  to {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-@keyframes novel-title-in {
-  0%,
-  50% {
-    opacity: 0;
-    transform: translateY(-100%);
-  }
-
-  100% {
-    opacity: 1;
-    transform: none;
-  }
-}
-
-/* 章节页 / 许可页：Content 的 .vp-doc 下面一层就是页面根节点 */
-.novel-chapter .vp-doc > div,
-.novel-license .vp-doc > div,
-/* 首页：外面还套了一层 VPHomeContent */
-.VPHomeContent.vp-doc > div > div {
-  animation: novel-page-in 1s both;
-}
-
-/* 章名单独淡入：先藏 1s，等正文升上来之后再落下 */
-.novel-chapter .vp-doc > div > h1 {
-  animation: novel-title-in 2s both;
-}
-
-/* ============================================================
-   9. 顶部阅读进度条
-
-   借鉴 sakurairo 的 .iro-scroll-percent：固定在顶端的一条细线，
-   宽度=已读百分比。只在正文页显示（pageClass 为 novel-chapter）。
-   ============================================================ */
-
-.novel-progress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 100;
-  display: none;
-  height: 3px;
-  background-image: linear-gradient(90deg, var(--vp-c-brand-3), var(--vp-c-brand-1));
-  transition: width 0.12s linear;
-}
-
-/* 正文页才亮出来；首页、许可页这类不需要 */
-.novel-chapter .novel-progress {
-  display: block;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .novel-progress {
-    transition: none;
-  }
-}
-
-/* ============================================================
-   10. 切页时的顶部加载条
-
-   借鉴 sakurairo 用的 vitepress-plugin-nprogress，实现见 theme/NavProgress.ts。
-   比阅读进度条细 1px、层级更高，两者叠在同一位置时能分出来。
-   ============================================================ */
-
-.novel-navprogress {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 110;
-  width: 0;
-  height: 2px;
-  opacity: 1;
-  background-image: linear-gradient(90deg, var(--vp-c-brand-1), var(--vp-c-brand-3));
-  transition: width 0.2s ease, opacity 0.25s ease;
-}
-
-/* ============================================================
-   11. 作品首页（/novels/<slug>/）
-   ============================================================ */
-
-/* 书架卡片（首页按分组排出的一张张书卡）。
-   卡片在 .VPHomeContent.vp-doc 里，默认的 `.vp-doc a` 会给链接加下划线，
-   所以这里的选择器都带上 .vp-doc 前缀提高优先级。 */
-/* 首页的分组标题不要那条横线（VitePress 默认给 h2 加了 1px 上边框） */
-.VPHomeContent.vp-doc h2 {
-  margin: 2.2em 0 0.9em;
-  padding-top: 0;
-  border-top: none;
-}
-
-/* 横线去掉后，标题里的 # 锚点要跟着回到文字顶部 */
-.VPHomeContent.vp-doc h2 .header-anchor {
-  top: 0;
-}
-
-.vp-doc .shelf-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
-  margin: 1.2em 0 2.6em;
-}
-
-.vp-doc .shelf-card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  padding: 18px 20px;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 14px;
-  background-color: var(--vp-c-bg-elv);
-  font-weight: 400;
-  text-decoration: none;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-.vp-doc .shelf-card:hover {
-  border-color: var(--vp-c-brand-2);
-  box-shadow: 0 14px 30px rgba(120, 82, 24, 0.18), 0 3px 8px rgba(120, 82, 24, 0.1);
-  transform: translateY(-4px);
-}
-
-/* 键盘 Tab 到卡片时给同样的反馈 */
-.vp-doc .shelf-card:focus-visible {
-  outline: none;
-  border-color: var(--vp-c-brand-2);
-  box-shadow: 0 14px 30px rgba(120, 82, 24, 0.18), 0 3px 8px rgba(120, 82, 24, 0.1);
-  transform: translateY(-4px);
-}
-
-.vp-doc .shelf-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
-}
-
-/* 卡片左上角的「书脊」：品牌渐变 + 书名首字，颜色跟着当前配色走 */
-.vp-doc .shelf-mark {
-  display: inline-flex;
-  flex: 0 0 auto;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background-image: linear-gradient(135deg, var(--vp-c-brand-2), var(--vp-c-brand-3));
-  color: var(--vp-button-brand-text);
-  font-size: 20px;
-  font-weight: 600;
-  line-height: 1;
-  box-shadow: 0 4px 10px rgba(120, 82, 24, 0.18);
-  transition: transform 0.25s ease;
-}
-
-.vp-doc .shelf-card:hover .shelf-mark {
-  transform: scale(1.06);
-}
-
-.vp-doc .shelf-title {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--vp-c-text-1);
-}
-
-/* 读者如果关掉了动效，就别位移 */
-@media (prefers-reduced-motion: reduce) {
-  .vp-doc .shelf-card,
-  .vp-doc .shelf-mark {
-    transition: none;
-  }
-
-  .vp-doc .shelf-card:hover,
-  .vp-doc .shelf-card:focus-visible {
-    transform: none;
-  }
-
-  .vp-doc .shelf-card:hover .shelf-mark {
-    transform: none;
-  }
-}
-
-.vp-doc .shelf-meta {
-  font-size: 12.5px;
-  color: var(--vp-c-text-3);
-}
-
-.vp-doc .shelf-desc {
-  font-size: 13.5px;
-  line-height: 1.7;
-  color: var(--vp-c-text-2);
-}
-
-.vp-doc .shelf-more {
-  margin-top: auto;
-  padding-top: 6px;
-  font-size: 13px;
-  color: var(--vp-c-brand-1);
-  text-decoration: none;
-}
-
-.novel-home .vp-doc .novel-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin: 1.6em 0 2.4em;
-}
-
-.novel-home .vp-doc .novel-btn {
-  display: inline-block;
-  padding: 0.55em 1.4em;
-  border: 1px solid var(--vp-c-border);
-  border-radius: 22px;
-  color: var(--vp-c-brand-1);
-  font-size: 14px;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background-color 0.25s ease, border-color 0.25s ease, transform 0.2s ease;
-}
-
-.novel-home .vp-doc .novel-btn:hover {
-  border-color: var(--vp-c-brand-2);
-  background-color: var(--vp-c-brand-soft);
-  transform: translateY(-1px);
-}
-
-.novel-home .vp-doc .novel-btn.primary {
-  border-color: transparent;
-  background-color: var(--vp-c-brand-3);
-  color: var(--vp-button-brand-text);
-  box-shadow: 0 8px 20px rgba(120, 82, 24, 0.18);
-}
-
-.novel-home .vp-doc .novel-btn.primary:hover {
-  background-color: var(--vp-c-brand-2);
 }

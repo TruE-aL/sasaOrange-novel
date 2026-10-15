@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 /**
- * 生成站点里那几个「算出来」的页面：
+ * 生成站点里那几个「算出来」的页面与后勤文件：
  *
- *   docs/index.md                    书架首页（列出全部作品）
- *   docs/public/novels/<slug>/cover.jpg  封面（压到 900px 宽）
- *   docs/public/favicon.png           站点图标（来自 site.json 里的 icon）
- *   docs/public/apple-touch-icon.png  同上，iOS 添加到主屏用
+ *   docs/index.md                          书架首页（封面卡片 + 分组）
+ *   docs/public/novels/<slug>/cover.jpg     封面（压到 900px 宽）
+ *   docs/public/favicon.png                 站点图标（来自 site.json 里的 icon）
+ *   docs/public/apple-touch-icon.png        同上，iOS 添加到主屏用
+ *   docs/public/feed.xml                    订阅源（按章节文件的修改时间排序）
+ *   docs/public/sitemap.xml                 站点地图
+ *   docs/public/robots.txt                  爬虫规则
  *
- * 正文（章节、许可页）现在就直接放在 docs/novels/<作品>/ 里，不再复制。
- * 点书架上的书卡直接进第一章，不再有「作品首页」这一层。
- * 「作品文件夹 → 网址」的映射见 scripts/lib/novels.mjs 与 .vitepress/config.mts。
+ * 正文（章节、许可页）直接放在 docs/novels/<作品>/ 里，不再复制。
+ * 图片处理用 sharp（npm 依赖），本地和 Cloudflare 这类云构建环境里都能出图，
+ * 所以封面不必再靠「产物入库」兜底。
  *
  * 生成的书架页末尾有一行 generated 标记；想自己写，把标记删掉即可，脚本就不覆盖了。
  * 手动同步：npm run docs:sync
  */
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import sharp from 'sharp'
 import { escapeHtml, loadNovels, readText, yaml } from './lib/novels.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -54,7 +57,7 @@ function writeGenerated(file, content) {
 
 fs.mkdirSync(publicNovelsDir, { recursive: true })
 
-syncIcon(site)
+await syncIcon(site)
 
 for (const novel of novels) {
   // 旧版本生成过作品首页，这里清掉（只删带 generated 标记的，手写的不动）
@@ -67,7 +70,7 @@ for (const novel of novels) {
   if (novel.cover) {
     const coverDir = path.join(publicNovelsDir, novel.slug)
     fs.mkdirSync(coverDir, { recursive: true })
-    compressCover(path.join(novel.sourceDir, novel.coverFile), path.join(coverDir, 'cover.jpg'))
+    await compressCover(path.join(novel.sourceDir, novel.coverFile), path.join(coverDir, 'cover.jpg'))
   }
 
   log(
@@ -77,6 +80,9 @@ for (const novel of novels) {
 }
 
 writeGenerated(path.join(docsDir, 'index.md'), homePage(novels, site))
+writeFile(path.join(publicDir, 'feed.xml'), feedXML(novels, site))
+writeFile(path.join(publicDir, 'sitemap.xml'), sitemapXML(novels, site))
+writeFile(path.join(publicDir, 'robots.txt'), robotsTXT(site))
 
 // 旧版结构留下的产物
 for (const legacy of [
@@ -93,12 +99,16 @@ log(`书架：${novels.length} 部作品`)
    页面内容
    ============================================================ */
 
+function writeFile(file, content) {
+  fs.mkdirSync(path.dirname(file), { recursive: true })
+  fs.writeFileSync(file, content)
+}
+
 /**
  * 站点图标：把 site.json 里 icon 指定的那张图缩成 favicon 与 iOS 主屏图标。
- * 生成的文件在 docs/public/ 下，并且已经入库——这样在没装 ImageMagick 的构建环境
- * （比如 Cloudflare Pages）里也不会缺图标。
+ * iOS 主屏不支持透明，所以铺一层白底。
  */
-function syncIcon(site) {
+async function syncIcon(site) {
   if (!site.icon) return
   const source = path.resolve(root, site.icon)
   if (!fs.existsSync(source)) {
@@ -107,15 +117,31 @@ function syncIcon(site) {
   }
 
   fs.mkdirSync(publicDir, { recursive: true })
-  const favicon = runImageTool([source, '-resize', '64x64', '-strip'], path.join(publicDir, 'favicon.png'))
-  // iOS 主屏上透明区域会变黑，所以铺一层白底
-  const touch = runImageTool(
-    [source, '-resize', '180x180', '-background', 'white', '-alpha', 'remove', '-alpha', 'off', '-strip'],
-    path.join(publicDir, 'apple-touch-icon.png')
-  )
-
-  if (favicon && touch) {
+  try {
+    await sharp(source)
+      .resize(64, 64, { fit: 'inside' })
+      .png()
+      .toFile(path.join(publicDir, 'favicon.png'))
+    await sharp(source)
+      .resize(180, 180, { fit: 'inside' })
+      .flatten({ background: '#ffffff' })
+      .png()
+      .toFile(path.join(publicDir, 'apple-touch-icon.png'))
     log(`站点图标：${site.icon} → favicon.png（64×64）、apple-touch-icon.png（180×180）`)
+  } catch (error) {
+    log(`提示：图标处理失败（${error.message}），跳过`)
+  }
+}
+
+/** 封面：缩到 900px 宽、转成 jpg（只缩小，不放大小图） */
+async function compressCover(source, target) {
+  try {
+    await sharp(source)
+      .resize({ width: 900, withoutEnlargement: true })
+      .jpeg({ quality: 88, mozjpeg: true })
+      .toFile(target)
+  } catch (error) {
+    log(`提示：《${path.basename(path.dirname(source))}》封面处理失败（${error.message}），跳过`)
   }
 }
 
@@ -133,6 +159,7 @@ function homePage(novels, site) {
   // 按 site.json 里的 sections 分组，每组一段标题 + 卡片
   const groups = site.sections
     .map((section) => ({
+      id: section.id,
       title: section.title,
       description: section.description || '',
       items: novels.filter((novel) => novel.category === section.id)
@@ -143,32 +170,23 @@ function homePage(novels, site) {
   const declared = new Set(site.sections.map((section) => section.id))
   const others = novels.filter((novel) => !declared.has(novel.category))
   if (others.length > 0) {
-    groups.push({ title: '其他', items: others })
+    groups.push({ id: 'others', title: '其他', description: '', items: others })
   }
 
   for (const group of groups) {
     // 分组标题来自 site.json，是被信任的配置；这里只把换行压掉，避免标题被截断成两行
-    lines.push(`## ${String(group.title).replace(/\s+/g, ' ').trim()}`, '')
+    lines.push(
+      `<h2 class="shelf-section"><span class="shelf-section-text">${escapeHtml(
+        String(group.title).replace(/\s+/g, ' ').trim()
+      )}</span></h2>`,
+      ''
+    )
     // description 是可选的：site.json 里不写就没有这行小字
-    if (group.description) lines.push(group.description, '')
+    if (group.description) lines.push(`<p class="shelf-section-desc">${escapeHtml(group.description)}</p>`, '')
     // 卡片是原生 HTML：一行一个，中间不留空行，markdown 会整段原样输出
     lines.push('<div class="shelf-grid">')
     for (const novel of group.items) {
-      const description = novel.tagline || novel.description
-      // href 会被写进 HTML 属性，所以也走转义（文件名里万一有引号也不会跑出去）
-      lines.push(`  <a class="shelf-card" href="${escapeHtml(novel.start)}">`)
-      lines.push('    <span class="shelf-head">')
-      lines.push(
-        `      <span class="shelf-mark" aria-hidden="true">${escapeHtml(initialOf(novel.title))}</span>`
-      )
-      lines.push(`      <span class="shelf-title">${escapeHtml(novel.title)}</span>`)
-      lines.push('    </span>')
-      lines.push(`    <span class="shelf-meta">${escapeHtml(cardMeta(novel, site))}</span>`)
-      if (description) {
-        lines.push(`    <span class="shelf-desc">${escapeHtml(description)}</span>`)
-      }
-      lines.push('    <span class="shelf-more">开始阅读 →</span>')
-      lines.push('  </a>')
+      lines.push(...card(novel, site))
     }
     lines.push('</div>', '')
   }
@@ -176,16 +194,55 @@ function homePage(novels, site) {
   return lines.join('\n')
 }
 
-/** 取书名第一个字，用在卡片左上角的渐变书脊上 */
-function initialOf(title) {
-  return Array.from(String(title).trim())[0] || '书'
+/** 一张书卡：封面 + 书名 + 信息 + 卖点 */
+function card(novel, site) {
+  const description = novel.tagline || novel.description
+  const title = escapeHtml(novel.title)
+  const rows = []
+
+  // href 会被写进 HTML 属性，所以也走转义
+  rows.push(`  <a class="shelf-card" href="${escapeHtml(novel.start)}">`)
+  rows.push('    <span class="shelf-cover">')
+  if (novel.cover) {
+    rows.push(
+      `      <img class="shelf-cover-img" src="${escapeHtml(novel.cover)}" alt="${title} 封面" loading="lazy" decoding="async">`
+    )
+  } else {
+    // 没有封面的书：做一张「铅字封面」，用书名与作者排出来，而不是留白
+    rows.push('      <span class="shelf-cover-blank" aria-hidden="true">')
+    rows.push(`        <span class="shelf-cover-name">${title}</span>`)
+    if (novel.author) {
+      rows.push(`        <span class="shelf-cover-author">${escapeHtml(novel.author)}</span>`)
+    }
+    rows.push('      </span>')
+  }
+  if (novel.status) {
+    rows.push(`      <span class="shelf-badge">${escapeHtml(novel.status)}</span>`)
+  }
+  rows.push('    </span>')
+  rows.push('    <span class="shelf-body">')
+  rows.push(`      <span class="shelf-title">${title}</span>`)
+  rows.push(`      <span class="shelf-meta">${escapeHtml(cardMeta(novel, site))}</span>`)
+  if (description) {
+    rows.push(`      <span class="shelf-desc">${escapeHtml(description)}</span>`)
+  }
+  rows.push(
+    '      <span class="shelf-more"><span class="shelf-more-text">开始阅读</span><span class="shelf-arrow" aria-hidden="true">→</span></span>'
+  )
+  rows.push('    </span>')
+  rows.push('  </a>')
+
+  return rows
 }
 
-/** 卡片上那行小字：作者（非本人作品）· 状态 · 章数/篇数 · 字数 */
+/**
+ * 卡片上那行小字：作者（非本人作品）· 章数/篇数 · 字数
+ * （「继续阅读」需要的章节清单由 .vitepress/config.mts 注入到首页的 <head> 里，
+ *  因为 markdown 里的 <script> 会被 VitePress 过滤掉。）
+ */
 function cardMeta(novel, site) {
   const parts = []
   if (novel.author && novel.author !== site.author) parts.push(`${novel.author} 著`)
-  if (novel.status) parts.push(novel.status)
   if (novel.stats.chapters) {
     parts.push(`${novel.stats.chapters} 章`)
   } else if (novel.stats.extras.length) {
@@ -195,21 +252,134 @@ function cardMeta(novel, site) {
   return parts.join(' · ')
 }
 
-/** 用 ImageMagick 处理图片（magick 或 convert 都行），没有这个命令就返回 false */
-function runImageTool(args, target) {
-  for (const bin of ['magick', 'convert']) {
-    try {
-      execFileSync(bin, [...args, target], { stdio: 'ignore' })
-      return true
-    } catch {
-      // 换下一个命令再试
+/* ============================================================
+   订阅源 / 站点地图 / robots
+   ============================================================ */
+
+function escapeXml(value) {
+  return String(value).replace(/[<>&'"]/g, (char) => {
+    switch (char) {
+      case '<':
+        return '&lt;'
+      case '>':
+        return '&gt;'
+      case '&':
+        return '&amp;'
+      case "'":
+        return '&apos;'
+      default:
+        return '&quot;'
     }
-  }
-  log('提示：没找到 ImageMagick（magick / convert），这部分图片处理已跳过')
-  return false
+  })
 }
 
-/** 封面：缩到 900px 宽、转成 jpg */
-function compressCover(source, target) {
-  return runImageTool([source, '-resize', '900x>', '-strip', '-quality', '88'], target)
+/** 站点根地址：site.json 里写了 url 就带上，否则用占位域名（本地的相对链接不受影响） */
+function baseUrl(site) {
+  return String(site.url || 'https://example.com').replace(/\/+$/, '')
+}
+
+function absolute(site, href) {
+  return `${baseUrl(site)}${href}`
+}
+
+/**
+ * 订阅源：把每章当成一条「更新」，按文件修改时间倒序。
+ * 没有单独的「发布日期」字段，就用 md 文件的 mtime，真实反映最近改了什么。
+ */
+function feedXML(novels, site) {
+  const items = []
+  for (const novel of novels) {
+    for (const chapter of novel.chapters) {
+      items.push({ novel, chapter })
+    }
+  }
+  items.sort((a, b) => b.chapter.mtime - a.chapter.mtime)
+  const updated =
+    items.length > 0 && items[0].chapter.mtime
+      ? new Date(items[0].chapter.mtime).toISOString()
+      : new Date().toISOString()
+
+  const rows = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">',
+    '  <channel>',
+    `    <title>${escapeXml(site.title)}</title>`,
+    `    <link>${escapeXml(absolute(site, '/'))}</link>`,
+    `    <description>${escapeXml(site.tagline || site.title)}</description>`,
+    '    <language>zh-CN</language>',
+    `    <lastBuildDate>${updated}</lastBuildDate>`,
+    `    <atom:link href="${escapeXml(absolute(site, '/feed.xml'))}" rel="self" type="application/rss+xml"/>`
+  ]
+
+  for (const { novel, chapter } of items) {
+    const chapterLabel = chapter.label ? `${chapter.label}　${chapter.title}` : chapter.title
+    // 语录集这类只有一篇、章节名和书名一样的，就别写成「《邓煜语录》邓煜语录」
+    const itemTitle = chapterLabel === novel.title ? novel.title : `《${novel.title}》${chapterLabel}`
+    rows.push(
+      '    <item>',
+      `      <title>${escapeXml(itemTitle)}</title>`,
+      `      <link>${escapeXml(absolute(site, chapter.href))}</link>`,
+      `      <guid isPermaLink="true">${escapeXml(absolute(site, chapter.href))}</guid>`,
+      `      <pubDate>${new Date(chapter.mtime || Date.now()).toUTCString()}</pubDate>`,
+      `      <description>${escapeXml(describeChapter(novel, chapter))}</description>`,
+      '    </item>'
+    )
+  }
+
+  rows.push('  </channel>', '</rss>', '')
+  return rows.join('\n')
+}
+
+/** 订阅条目里的一行简介：作者 + 字数（没有正文摘要，避免把全文塞进 feed） */
+function describeChapter(novel, chapter) {
+  const parts = []
+  if (novel.author) parts.push(`作者：${novel.author}`)
+  if (chapter.words) parts.push(`本章约 ${chapter.words} 字`)
+  if (novel.tagline) parts.push(novel.tagline)
+  return parts.join('　|　')
+}
+
+/** 站点地图：首页 + 每章的页面 + 许可页 */
+function sitemapXML(novels, site) {
+  const updatedOf = (ms) => new Date(ms || Date.now()).toISOString()
+  const rows = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '  <url>',
+    `    <loc>${escapeXml(absolute(site, '/'))}</loc>`,
+    `    <lastmod>${updatedOf(Math.max(...novels.map((n) => n.updated)))}</lastmod>`,
+    '    <changefreq>weekly</changefreq>',
+    '    <priority>1.0</priority>',
+    '  </url>'
+  ]
+
+  for (const novel of novels) {
+    for (const chapter of novel.chapters) {
+      rows.push(
+        '  <url>',
+        `    <loc>${escapeXml(absolute(site, chapter.href))}</loc>`,
+        `    <lastmod>${updatedOf(chapter.mtime || novel.updated)}</lastmod>`,
+        '    <changefreq>monthly</changefreq>',
+        '    <priority>0.8</priority>',
+        '  </url>'
+      )
+    }
+    if (novel.licensePage) {
+      rows.push(
+        '  <url>',
+        `    <loc>${escapeXml(absolute(site, novel.licensePage))}</loc>`,
+        `    <lastmod>${updatedOf(novel.updated)}</lastmod>`,
+        '    <changefreq>yearly</changefreq>',
+        '    <priority>0.4</priority>',
+        '  </url>'
+      )
+    }
+  }
+
+  rows.push('</urlset>', '')
+  return rows.join('\n')
+}
+
+function robotsTXT(site) {
+  return ['User-agent: *', 'Allow: /', '', `Sitemap: ${absolute(site, '/sitemap.xml')}`, ''].join('\n')
 }

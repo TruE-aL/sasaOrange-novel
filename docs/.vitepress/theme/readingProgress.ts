@@ -1,4 +1,10 @@
-import type { Router } from 'vue-router'
+import {
+  currentRoutePath,
+  normalizePath,
+  onNavigationEnd,
+  onNavigationStart,
+  type VitePressRouter
+} from './navigation'
 
 /**
  * 阅读进度记忆：把每章的滚动位置存进 localStorage，下次回到这一章接着读。
@@ -8,6 +14,8 @@ import type { Router } from 'vue-router'
  * - 点「上一章 / 下一章」时不恢复：那种情况读者通常想看新章节的开头
  * - 带 #锚点 的链接不恢复：交给 VitePress 自己定位到锚点
  * - 已经滚到页尾（读完了）就清掉记录，下次从开头开始
+ *
+ * 切页时机借 theme/navigation.ts 的统一钩子（VitePress 2 自带路由，没有 vue-router 的 beforeEach）。
  */
 export const PROGRESS_STORAGE_KEY = 'novel-progress'
 
@@ -72,10 +80,9 @@ function scrollTop() {
   return window.scrollY || document.documentElement.scrollTop || 0
 }
 
-export function installReadingProgress(router: Router) {
+export function installReadingProgress(router: VitePressRouter) {
   /**
-   * 所有逻辑都包一层：这是全局增强，任何一种意外都不该让整站白屏，
-   * 更不能让路由守卫抛错（守卫抛错会中断导航，首屏就会是一片空白）。
+   * 所有逻辑都包一层：这是全局增强，任何一种意外都不该让整站白屏。
    */
   const safe =
     <A extends unknown[]>(fn: (...args: A) => void) =>
@@ -87,7 +94,8 @@ export function installReadingProgress(router: Router) {
       }
     }
 
-  let currentPath = router.currentRoute.value.path
+  // 首屏时 router.route 还停在默认的 "/"，真正的页面地址看 location 才准
+  let currentPath = currentRoutePath(router) || normalizePath(window.location.pathname)
   let pending: Entry | null = null
   let saveTimer: ReturnType<typeof setTimeout> | null = null
   let skipNext = false
@@ -152,8 +160,8 @@ export function installReadingProgress(router: Router) {
     true
   )
 
-  /** 离开这一页前先把位置存好（SPA 跳转不会触发 beforeunload） */
-  router.beforeEach(
+  /** 离开这一页前先把位置存好 */
+  onNavigationStart(
     safe(() => {
       capture()
       flush()
@@ -168,9 +176,11 @@ export function installReadingProgress(router: Router) {
 
     let tries = 0
     const attempt = () => {
-      if (!isReadingPage() || router.currentRoute.value.path !== path) return
+      // 已经切到别的页面了就别再折腾
+      if (currentRoutePath(router) !== path) return
       const max = document.documentElement.scrollHeight - window.innerHeight
-      if (max >= y - 8 || tries >= MAX_TRIES) {
+      // 新页面的内容（图片、字体）可能还没撑开，撑到目标位置再滚
+      if ((isReadingPage() && max >= y - 8) || tries >= MAX_TRIES) {
         window.scrollTo({ top: Math.min(y, Math.max(max, 0)), behavior: 'auto' })
         return
       }
@@ -178,18 +188,19 @@ export function installReadingProgress(router: Router) {
       setTimeout(attempt, RETRY_DELAY)
     }
 
+    // 等 Vue 把新页面挂上去、VitePress 自己那次「滚到顶」跑完
     requestAnimationFrame(() => setTimeout(attempt, 60))
   }
 
-  router.afterEach(
-    safe((to: { path: string; hash?: string }) => {
-      currentPath = to.path
-      const skip = skipNext || Boolean(to.hash)
+  onNavigationEnd(
+    safe((to: string) => {
+      currentPath = normalizePath(to)
+      const skip = skipNext || Boolean(router.route?.hash)
       skipNext = false
-      if (!skip) restore(to.path)
+      if (!skip) restore(currentPath)
     })
   )
 
-  // 首屏（刷新 / 直接输网址进来）时 afterEach 不一定触发，补一次
-  setTimeout(safe(() => restore(router.currentRoute.value.path)), 120)
+  // 首屏（刷新 / 直接输网址进来）时上面那个钩子还没轮到，补一次
+  setTimeout(safe(() => restore(currentRoutePath(router) || normalizePath(window.location.pathname))), 160)
 }

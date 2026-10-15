@@ -1,6 +1,10 @@
 # 依赖
 node_modules/
 
+# pnpm 的内容寻址缓存。某些环境（比如容器里）pnpm 会把它建在项目根目录，
+# 是 168MB 的纯缓存，绝不能提交
+.pnpm-store/
+
 # VitePress 构建输出
 docs/.vitepress/dist/
 docs/.vitepress/cache/
@@ -8,7 +12,12 @@ docs/.vitepress/cache/
 # 由 scripts/sync-content.mjs 生成的书架与作品首页（正文本身在 docs/novels/ 里，正常入库）
 docs/index.md
 docs/novels/*/index.md
+
+# 同步脚本生成的图片与后勤文件：构建时用 sharp 现出，不必入库
 docs/public/novels/
+docs/public/feed.xml
+docs/public/sitemap.xml
+docs/public/robots.txt
 
 # Cloudflare wrangler 的本地缓存
 .wrangler/

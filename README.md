@@ -22,7 +22,8 @@ npm run docs:sync     # 只更新生成的书架页/作品页，不启动服务
 
 ```
 docs/
-  site.json                     站点级设置：站名、作者、摘要、图标、页脚文案、书架分组
+  site.json                     站点级设置：站名、作者、摘要、图标、站点网址、
+                                页脚文案、评论区参数、书架分组
   index.md                      书架首页（生成物）
   novels/
     _模板/                       新作品从这里复制（下划线开头，不进站点）
@@ -30,20 +31,23 @@ docs/
       novel.json                标题、网址、简介、状态、许可
       01-导语.md … 18-后记.md    正文，文件名前缀决定目录顺序
       00-作品许可证（网站）.md    可选：许可声明，网址固定为 <作品>/license
-      cover.png                 可选：封面
+      cover.png                 可选：封面（海报式竖图最好，卡片按 3:4 裁）
     邓煜语录/                    正文、图片、原始 PDF 都放在一起
   public/
-    favicon.png                 站点图标 64×64（由 site.json 的 icon 生成，已入库）
+    favicon.png                 站点图标 64×64（由 site.json 的 icon 生成）
     apple-touch-icon.png        iOS 加到主屏用 180×180（同上）
     fonts/noto-serif-sc-subset.woff2  阅读用宋体子集 408KB（已入库）
     novels/<slug>/cover.jpg     封面压缩产物（生成物）
+    feed.xml                    订阅源（生成物）
+    sitemap.xml                 站点地图（生成物）
+    robots.txt                  爬虫规则（生成物）
   .vitepress/                    站点配置与主题
 ```
 
-站点图标：把图片放到项目根目录，再让 `docs/site.json` 的 `icon` 指向它
-（现在是 `"icon": "橙子.png"`），同步时会生成上面两个尺寸的图标。
-生成的这两个文件**是入库的**——这样在没有 ImageMagick 的构建环境（例如 Cloudflare Pages）
-里也不会缺图标；换了源图之后记得把重新生成的文件一起提交。
+图片处理（站点图标、封面）用 **sharp**（项目的 devDependency），本地和
+Cloudflare Pages 这类云构建环境都能出图，所以图标和封面不必靠「产物入库」兜底。
+`docs/public/` 里那几个生成物（封面、feed、sitemap、robots）都在 `.gitignore` 里，
+构建时会现生成。
 
 几点说明：
 
@@ -88,7 +92,7 @@ docs/
 }
 ```
 
-`tagline` 现在只作为页面的 meta 描述（搜索引擎和分享预览用），不显示在页面上。
+`tagline` 会作为页面的 meta 描述（搜索引擎和分享预览用），同时显示在书架卡片上。
 
 首页顶部的大字来自 `heroTitle`（下面那行小字是 `heroSubtitle`），两个都可以留空——
 都留空的话首页就直接从分组书架开始：
@@ -99,6 +103,27 @@ docs/
 ```
 
 顶栏和浏览器标签上显示的是 `title`，所以它写短一点（手机上不会被截断）。
+
+`site.json` 里还有两个跟「分享 / 互动 / 收录」有关的键：
+
+```json
+{
+  "url": "https://sasaorange-novel.pages.dev",
+  "comment": {
+    "provider": "giscus",
+    "repo": "TruE-aL/sasaOrange-novel",
+    "repoId": "",
+    "category": "Announcements",
+    "categoryId": ""
+  }
+}
+```
+
+- `url`：站点正式地址。`og:image`、canonical、订阅源与站点地图里的绝对链接都用它拼。
+  不填也能构建，只是那些绝对链接会退化成占位域名。
+- `comment`：章节页底部的评论区（giscus，基于 GitHub Discussions）。
+  `repoId` / `categoryId` 还空着时，评论区**什么都不渲染**，站点不会出现一个空框；
+  在 [giscus.app](https://giscus.app) 上按仓库生成这两个 id 填进来即可生效。
 
 每部作品在自己 `novel.json` 里用 `category` 指定归到哪一组，不写就默认进第一组：
 
@@ -112,6 +137,30 @@ docs/
 
 `author` 和站点作者（`site.json` 里的 `author`）不一样时，卡片上会多显示一行「邓煜 著」，
 一眼能看出这不是自己的作品。
+
+## 书架卡片与封面
+
+首页每个分组排成一格一格的「书卡」：**封面在上（固定 3:4），书名、信息、一句话简介、
+「开始阅读」在下**，整张卡可点，点了直接进第一章。
+
+- 有封面的书：`novel.json` 的 `cover` 指向的图会被压成 900px 宽的 jpg，显示在卡片上。
+  竖版海报效果最好（卡片按 3:4 裁切）；没写 `cover` 就默认找文件夹里的 `cover.png`。
+- 没有封面的书：不会留白，而是用主题色渐变排一张「铅字封面」，用书名与作者撑起来。
+- 卡片右上角那枚小圆标是 `novel.json` 里的 `status`（已完结 / 连载中 / 语录集…），
+  不写就不显示。
+
+## 继续阅读
+
+读者在某一章读到一半、下次回到书架，卡片上的「开始阅读」会变成
+**「继续阅读 · 第6章　裂痕」**，点了直接跳回那一章，封面还会多一圈主题色细环。
+侧边栏目录里读过的章节，标题后面也会点一个小圆点。
+
+这是纯客户端能力，建立在「阅读进度」之上（见下面那节），不影响任何未读过的读者：
+没有进度时书卡就是普通的「开始阅读」。
+
+实现上分两处：每部作品的章节清单随首页注入到 `<head>`
+（`docs/.vitepress/config.mts` 的 `transformHead`，因为 markdown 里的 `<script>`
+会被 VitePress 过滤掉），客户端逻辑在 `theme/shelf.ts`。
 
 ## 目录上显示的名字
 
@@ -176,13 +225,18 @@ VitePress 会把这些图片打包进站点。
 `docs/.vitepress/theme/SchemeSwitch.ts` 的 `SCHEMES` 里加一项，
 最后把新配色名字加进 `config.mts` 首屏脚本的白名单。
 
+卡片、设置面板这些地方的投影也用变量（`--novel-shadow-sm/md/lg`），
+每套配色定义自己的 `--novel-shadow-rgb`（暖黄偏棕、淡橙红偏橙、淡蓝偏蓝），
+深色模式统一换成黑影——所以切配色时阴影不会「发脏」。改成一整套阴影也行，
+直接覆盖那三个 `--novel-shadow-*` 变量即可。
+
 ## 阅读设置（字号 / 行距 / 字体）
 
 章节页顶栏右侧有个 **Aa** 按钮，点开可以自助调整：
 
-- **字号** 14–24px
+- **字号** 14–32px
 - **行距** 1.5–2.6
-- **字体** 黑体（系统默认）/ 宋体（下面那节的思源宋体子集）
+- **字体** 宋体（默认，下面那节的思源宋体子集）/ 黑体（系统默认）
 
 只在正文页显示（其它页面改了也看不出效果），选择记在 localStorage 里，
 首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
@@ -190,7 +244,7 @@ VitePress 会把这些图片打包进站点。
 
 ## 切页动画
 
-切章节时，正文会从下方 50px 处淡入（1s），章名再单独「落下来」（2s，前一半先藏着）。
+切章节时，正文会从下方 22px 处淡入（0.5s），章名再单独「落下来」（1s，前一半先藏着）。
 效果借自 [KeqingMoe/sakurairo](https://github.com/KeqingMoe/sakurairo)（VitePress 版的
 Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 两条关键帧，
 这里只取了视觉参数（位移量与时长），重新写成本站自己的 `novel-page-in` / `novel-title-in`。
@@ -202,27 +256,15 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
   也就不会出现「钩子没装上就看不到」的情况
 - 章节页与许可页用 `.novel-chapter .vp-doc > div` / `.novel-license .vp-doc > div`；
   首页多套了一层 `VPHomeContent`，用 `.VPHomeContent.vp-doc > div > div`
-- 默认**不禁用**（原主题也没禁用）——所以即使系统开了「减弱动效」也能看到。
-  想尊重该设置，在 theme.css 里加：
-
-  ```css
-  @media (prefers-reduced-motion: reduce) {
-    .novel-chapter .vp-doc > div,
-    .novel-license .vp-doc > div,
-    .VPHomeContent.vp-doc > div > div,
-    .novel-chapter .vp-doc > div > h1 {
-      animation: none;
-    }
-  }
-  ```
-
-- 调快/调慢就改那两处 `1s` / `2s`，以及关键帧里的 `translateY(50px)`；
+- 尊重系统「减弱动效」：`prefers-reduced-motion: reduce` 下这些动画会关掉
+  （第 8 节末尾那段 media query，书架卡片的位移也在里面一起关掉）
+- 调快/调慢就改那两处 `0.5s` / `1s`，以及关键帧里的 `translateY(22px)`；
   不想要就删掉第 8 节整节
 
 ## 阅读进度
 
 每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
-数据存在 localStorage 的 `novel-progress` 里）。几条规则：
+数据存在 localStorage 的 `novel-progress` 里，路径统一成不含 `.html` / `?query` 的干净写法）。
 
 正文页顶部还有一条 3px 的进度条（`theme/ReadingProgress.ts`，写法借鉴 sakurairo 的
 `.iro-scroll-percent`），宽度就是已读百分比；只在正文页显示，首页与许可页不显示。
@@ -235,7 +277,7 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 切页时顶部还会出现一条更细（2px）的加载条，见 `theme/NavProgress.ts`——实现思路
 借自 sakurairo 用的 `vitepress-plugin-nprogress`，但没引依赖、自己写了 30 行：
 跳转开始后**延迟 120ms** 才出现（静态站通常几十毫秒就读完了，这样不会闪一下），
-结束时补到 100% 再淡出。不想要就把 `theme/index.ts` 里的 `installNavProgress(router)` 删掉。
+结束时补到 100% 再淡出。不想要就把 `theme/index.ts` 里的 `installNavProgress()` 删掉。
 
 - 只记**正文页**：书架首页、作品许可页这些不记
 - 点「上一章 / 下一章」进入的新章节**不恢复**，从开头读（那种情况读者通常想看新内容）
@@ -245,11 +287,26 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 
 想清空所有进度：浏览器控制台里 `localStorage.removeItem('novel-progress')`。
 
+### 为什么要有 theme/navigation.ts
+
+**VitePress 2.0.0-alpha 已经不再用 vue-router 了**，它自带一个极简路由，钩子是单个属性
+（`router.onBeforePageLoad` / `router.onAfterRouteChange`…），没有 `beforeEach` / `currentRoute`。
+（上游 `EnhanceAppContext` 的类型声明还是旧的 vue-router 的 `Router`，但运行时对不上。）
+
+所以阅读进度、加载条、书架增强这三个模块**不能各自去给 `router.onXxx` 赋值**（会互相覆盖），
+而是统一登记到 `theme/navigation.ts` 的监听表里，由它挂一次钩子，再用
+`onNavigationStart` / `onNavigationEnd` 分发。加新的「切页时要做事」的功能，也走这里。
+
+（顺带：如果以后升级 VitePress 拿掉了这些钩子，只有这一个文件需要跟着改。）
+
 ## 阅读字体
 
 「宋体」用的是自托管的思源宋体（Noto Serif CJK SC）子集：
-`docs/public/fonts/noto-serif-sc-subset.woff2`，只包含作品实际用到的两千多个字，
-**408KB**，而且只有选了宋体的读者才会下载它（没选的人完全不加载）。
+`docs/public/fonts/noto-serif-sc-subset.woff2`，只包含作品实际用到的两千多个字，**408KB**。
+
+它是**默认字体**（`--vp-font-family-base` 首选就是它），所以几乎所有第一次来的读者都会加载它；
+章节页的 `<head>` 里也加了 `<link rel="preload">`，让字体早一点到位、少闪一下。
+读者在阅读设置里切到「黑体」时，就不再需要这个字体文件了。
 
 ```bash
 npm run fonts:build     # 重新生成子集（新章节出现生僻字时跑一次）
@@ -260,10 +317,23 @@ npm run fonts:build     # 重新生成子集（新章节出现生僻字时跑一
 `pip install fonttools brotli`。没覆盖到的字浏览器会自动回退到系统衬线字体，
 不会出现豆腐块。字体许可是 OFL 1.1，声明见 `docs/public/fonts/LICENSE.txt`。
 
+## 订阅与收录
+
+构建时会顺带生成三个文件到 `docs/public/`（都在 `.gitignore` 里，不必入库）：
+
+- `feed.xml`：订阅源。把每一章当成一条「更新」，**按 md 文件的修改时间倒序**排，
+  所以改过哪一章，订阅里就会浮到最前面——不用另外维护「更新日期」字段。
+  页面 `<head>` 里有 RSS 自动发现的 link，读者用阅读器订阅站点即可。
+- `sitemap.xml`：站点地图，收录首页、每章、许可页。
+- `robots.txt`：允许抓取，并指向站点地图。
+
+三者里的绝对链接都来自 `site.json` 的 `url`。
+
 ## 字数与章数
 
 书架卡片上的「14 章 · 约 2.9 万字」由 `scripts/lib/novels.mjs` 统计（汉字数，不含标题行），
-写作进度变化后重新构建就会更新，不用手改。
+写作进度变化后重新构建就会更新，不用手改。每章的字数也会写进该页的 frontmatter，
+正文页页尾那行「本章完 · 约 1793 字」就是它（`theme/ChapterEnd.ts`）。
 
 ## 部署
 
@@ -280,10 +350,13 @@ pages_build_output_dir = "docs/.vitepress/dist"
    （等于 `npm run docs:build && npx wrangler pages deploy`）。
    首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
 2. **Pages 连 Git 仓库**：在 Cloudflare 控制台选构建命令 `npm run docs:build`、
-   输出目录 `docs/.vitepress/dist`。这种方式下构建环境没有 ImageMagick，
-   同步脚本会跳过封面压缩并打印一行提示，不影响构建。
+   输出目录 `docs/.vitepress/dist`。图片处理用的是 sharp（npm 依赖，卸载装时一并装好），
+   云端没有 ImageMagick 也能出图，不需要额外配置。
 
 `name` 决定了默认域名，首次部署后不能改，想换的话在部署前改。
+
+部署前记得把 `docs/site.json` 里的 `url` 改成真实域名，`og:image`、canonical、
+订阅源和站点地图里的绝对链接才正确。
 
 ## 出问题了怎么排查
 

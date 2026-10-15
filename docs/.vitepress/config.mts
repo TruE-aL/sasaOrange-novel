@@ -77,10 +77,36 @@ for (const novel of novels) {
   rewrites[`novels/${novel.folder}/index.md`] = `novels/${novel.slug}/index.md`
 }
 
-// 章节页的 URL（用 slug 的那份），用来判断哪些页面该套小说排版
-const chapterPages = new Set(
-  novels.flatMap((novel) => novel.chapters.map((chapter) => `novels/${novel.slug}/${chapter.file}`))
+// 章节页 / 许可页的 URL（用 slug 的那份），用来判断哪些页面该套小说排版
+const chapterPages = new Map(
+  novels.flatMap((novel) =>
+    novel.chapters.map((chapter) => [`novels/${novel.slug}/${chapter.file}`, { chapter, novel }])
+  )
 )
+const licensePages = new Set(
+  novels.filter((novel) => novel.licenseFile).map((novel) => `novels/${novel.slug}/license.md`)
+)
+
+/**
+ * 书架首页要给客户端一份「每本书有哪些章」的清单，用来把书卡从
+ * 「开始阅读」换成「继续阅读 · 第5章」（theme/shelf.ts）。
+ * markdown 里的 <script> 会被 VitePress 过滤掉，所以放在 <head> 里注入，
+ * 而且只在首页注入，其它页面不带。
+ */
+const shelfData = novels.map((novel) => ({
+  slug: novel.slug,
+  start: novel.start,
+  title: novel.title,
+  chapters: novel.chapters.map((chapter) => ({
+    href: chapter.href,
+    label: chapter.label,
+    title: chapter.title
+  }))
+}))
+
+/** 站点根地址，拼 og:image / canonical 这些绝对地址用 */
+const siteUrl = String(site.url || '').replace(/\/+$/, '')
+const absolute = (href: string) => (siteUrl ? `${siteUrl}${href}` : href)
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -90,14 +116,63 @@ export default defineConfig({
 
   rewrites,
 
-  // 教程自带的示例页面、以及 _模板 这类下划线开头的文件夹都不进站点
-  srcExclude: ['markdown-examples.md', 'api-examples.md', 'test.md', 'novels/_*/**'],
+  // _模板 这类下划线开头的文件夹不进站点
+  srcExclude: ['novels/_*/**'],
 
-  // 章节页自动加上 novel-chapter 类名，主题据此套中文小说排版（首行缩进、行高等）
+  // 章节页自动加上 novel-chapter 类名，主题据此套中文小说排版（首行缩进、行高等）；
+  // 顺带把本章字数、所属书名写进 frontmatter，页尾与分享卡都要用。
   transformPageData(pageData) {
-    if (chapterPages.has(pageData.relativePath)) {
+    const info = chapterPages.get(pageData.relativePath)
+    if (info) {
       pageData.frontmatter.pageClass = pageData.frontmatter.pageClass || 'novel-chapter'
+      pageData.frontmatter.chapterWords = info.chapter.words
+      pageData.frontmatter.novelTitle = info.novel.title
+      return
     }
+    if (licensePages.has(pageData.relativePath)) {
+      pageData.frontmatter.pageClass = pageData.frontmatter.pageClass || 'novel-license'
+    }
+  },
+
+  /**
+   * 每个页面往 <head> 里补分享卡（og / twitter）与 canonical。
+   * 章节页的 og:image 用所属作品的封面；首页用站点图标。
+   */
+  transformHead({ pageData }) {
+    const path = pageData.relativePath
+    const info = chapterPages.get(path)
+    const canonical = absolute('/' + path.replace(/(^|\/)index\.md$/, '').replace(/\.md$/, ''))
+
+    const title = info
+      ? `${info.chapter.label ? info.chapter.label + '　' : ''}${info.chapter.title} · 《${info.novel.title}》`
+      : pageData.frontmatter.title || site.title
+    const description = info
+      ? info.novel.tagline || info.novel.description || site.tagline
+      : site.tagline
+    const image = info?.novel.cover ? absolute(info.novel.cover) : absolute('/apple-touch-icon.png')
+
+    const tags: Array<[string, Record<string, string>]> = [
+      ['link', { rel: 'canonical', href: canonical }],
+      ['meta', { property: 'og:type', content: path.startsWith('novels/') ? 'article' : 'website' }],
+      ['meta', { property: 'og:site_name', content: site.title }],
+      ['meta', { property: 'og:title', content: title }],
+      ['meta', { property: 'og:description', content: description }],
+      ['meta', { property: 'og:url', content: canonical }],
+      ['meta', { property: 'og:image', content: image }],
+      ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+      ['meta', { name: 'twitter:title', content: title }],
+      ['meta', { name: 'twitter:description', content: description }],
+      ['meta', { name: 'twitter:image', content: image }]
+    ]
+
+    // 书架首页额外带上章节清单（客户端「继续阅读」用）
+    // 把 < 转义掉，书名/章节名里万一出现 </script> 也不会把脚本截断
+    if (path === 'index.md') {
+      const json = JSON.stringify(shelfData).replace(/</g, '\\u003c')
+      tags.push(['script', {}, `window.__NOVEL_SHELF__=${json}`])
+    }
+
+    return tags
   },
 
   // 首屏脚本：在页面渲染前把读者选过的配色和阅读设置（字号/行距/字体）写好，
@@ -105,6 +180,21 @@ export default defineConfig({
   head: [
     ['link', { rel: 'icon', type: 'image/png', href: '/favicon.png' }],
     ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
+    // 订阅源：浏览器与阅读器会自动发现 /feed.xml
+    ['link', { rel: 'alternate', type: 'application/rss+xml', title: `${site.title} 更新`, href: '/feed.xml' }],
+    // 默认字体是宋体子集，提前拉一把，切换字体时少闪一下
+    [
+      'link',
+      {
+        rel: 'preload',
+        href: '/fonts/noto-serif-sc-subset.woff2',
+        as: 'font',
+        type: 'font/woff2',
+        crossorigin: ''
+      }
+    ],
+    // 把站点配置（评论区参数等）交给客户端组件，省得再引一层依赖
+    ['script', {}, `window.__NOVEL_SITE__=${JSON.stringify({ url: siteUrl, comment: site.comment || null })}`],
     [
       'script',
       {},
