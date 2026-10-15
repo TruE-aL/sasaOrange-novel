@@ -1,4 +1,4 @@
-import { defineComponent, h, ref, computed, onMounted, onUnmounted } from 'vue'
+import { defineComponent, h, ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useData } from 'vitepress'
 import { clearAllReadData } from './readingProgress'
 import { onNavigationEnd } from './navigation'
@@ -21,11 +21,10 @@ const DONE_ICON = `<svg viewBox="0 0 20 20" width="1.15em" height="1.15em" xmlns
  *  2. 工具条 fixed 定位，left 值跟着折叠状态切换，所以收起后按钮会自己滑到左边
  *  3. 过渡 class 在挂载后才加，避免「首页 → 文章页」切换时动画跟着播一遍
  *
- * 目录状态**不记忆**：每次进入页面都从收起态开始。
- *   · 首屏靠 config.mts 的防闪烁脚本无条件加 .novel-sidebar-collapsed；
- *   · 站内切页（章 → 章，或正文 → 首页再回来）由下面的 onNavigationEnd
- *     把 collapsed 复位，所以「读一会儿、手动展开、回主页、再点开始阅读」
- *     进去看到的仍是收起状态。
+ * 目录状态**不记忆**，但**不随切章重置**：
+ *   · 首屏 / 从首页进正文 → 收起（config.mts 的防闪烁脚本预先加 class）；
+ *   · 章 → 章（点目录、上一章/下一章）→ 保持当前状态，读到一半目录不会被收走；
+ *   · 回到首页等非正文页 → 收起，下次进来仍是收起态。
  *
  * 两个按钮包在同一个 .novel-sidebar-tools 容器里：定位交给容器，
  * 按钮只要跟着容器排在里面就行，不用各自抄一套 media query。
@@ -63,13 +62,31 @@ export default defineComponent({
       requestAnimationFrame(() => {
         document.documentElement.classList.add('novel-sidebar-animated')
       })
+    })
 
-      // 站内切页后重新收起：组件实例会被复用（章 → 章不会重新 mount），
-      // 所以不能只在 onMounted 里做一次。
-      onNavigationEnd(() => {
+    /**
+     * 「从非章节页进到章节页」时复位到收起态；章 → 章之间保持原样。
+     *
+     * 为什么要跟一下 visible 的变化而不是听 onNavigationEnd：组件实例在
+     * 章 → 章切换时会被复用，光看某一次切页分不清「刚进这本书」还是
+     * 「在目录里翻下一章」。而 visible 只在「正文页 ↔ 非正文页」之间翻转，
+     * 正好对应「进出这本书」——于是：
+     *   · 首页书架点开始阅读 → visible 由 false 变 true → 收起（每次都从头开始）
+     *   · 目录里点下一章     → visible 一直是 true，不变      → 保持展开
+     */
+    watch(visible, (now, before) => {
+      if (now && !before) {
         collapsed.value = true
         sync()
-      })
+      }
+    })
+
+    // 站内切到别的页面（比如回主页）时也收起来，免得下次进来还留着展开态
+    onNavigationEnd(() => {
+      if (!visible.value) {
+        collapsed.value = true
+        sync()
+      }
     })
 
     onUnmounted(() => {
