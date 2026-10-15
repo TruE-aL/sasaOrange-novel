@@ -37,23 +37,23 @@ export function progressPercent(scrollTop: number, scrollHeight: number, innerHe
 }
 
 /**
- * 「某一章刚刚读完」的回调表。
+ * 「目录小点需要刷新」的回调表（已读 / 已读被取消 都走这里）。
  *
- * shelf.ts 需要在这个时刻即时把目录小点刷出来（不等切页），
+ * shelf.ts 需要在这些时刻即时把目录小点刷出来（不等切页），
  * 但它已经 import 了本模块，这里再 import 回去就成环了。
- * 所以反过来：由 shelf 注册回调，本模块在读完时调用，方向单向。
+ * 所以反过来：由 shelf 注册回调，本模块在状态变化时调用，方向单向。
  */
-type ReadListener = (path: string) => void
+type ReadListener = () => void
 const readListeners: ReadListener[] = []
 
 export function onChapterRead(listener: ReadListener) {
   readListeners.push(listener)
 }
 
-function emitRead(path: string) {
+function emitReadChange() {
   for (const listener of readListeners) {
     try {
-      listener(path)
+      listener()
     } catch (error) {
       console.error('[novel] 已读回调出错：', error)
     }
@@ -132,13 +132,37 @@ export function markRead(path: string): boolean {
   return true
 }
 
+/** 取消一章的已读标记；返回是否真的产生了变化 */
+function unmarkRead(path: string): boolean {
+  const paths = readPaths()
+  if (!paths.includes(path)) return false
+  writeRead(paths.filter((item) => item !== path))
+  return true
+}
+
 /**
  * 章节读完：清掉阅读位置（下次从头读），并记进已读集合。
  * 第一次读完时通知监听者（shelf 借此即时刷新目录小点）。
  */
 function finish(path: string): void {
   clear(path)
-  if (markRead(path)) emitRead(path)
+  if (markRead(path)) emitReadChange()
+}
+
+/**
+ * 重新打开一个已读章节、却没读到底就离开：取消它的已读标记。
+ *
+ * 语义上说得通——「已读」表示的是「这一章读到过尾」，
+ * 既然这次重读没到结尾，那这个小点就该收回去，同时把这次的位置记下来，
+ * 下次再进来从这儿接着读。
+ *
+ * 返回是否真的取消了（取消了才需要刷目录）。
+ */
+function reopen(path: string, y: number): boolean {
+  if (!unmarkRead(path)) return false
+  if (y > 0) save(path, y)
+  emitReadChange()
+  return true
 }
 
 /**
@@ -265,11 +289,25 @@ export function installReadingProgress(router: VitePressRouter) {
     true
   )
 
-  /** 离开这一页前先把位置存好；如果正停在章末，也要补记「已读」 */
+  /**
+   * 离开这一章（切到别的页）：
+   *  · 停在章末        → 补记「已读」
+   *  · 中途离开到别章   → 若这章本是已读，取消小点；并记下当前位置，下次接着读
+   *  · 刷新 / 关标签页  → 走的是 beforeunload / visibilitychange，不经过这里，
+   *                     所以不算「重新读了一遍」，已读状态不动
+   */
   onNavigationStart(
-    safe(() => {
+    safe((to: string) => {
       capture()
       markIfFinished()
+
+      const leaving = normalizePath(to) !== currentPath
+      // 只在「真的读了一点」时才收回小点，避免刚进来没滚就被取消
+      if (leaving && pending && !reachedEnd() && pending.y > 0) {
+        reopen(currentPath, pending.y)
+        pending = null // 位置已由 reopen 落盘，交给 flush 会被判成「没到底」而重复保存
+      }
+
       flush()
     })
   )

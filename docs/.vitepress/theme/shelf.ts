@@ -111,6 +111,6 @@ export function installShelf() {
   // 首屏（刷新 / 直接输网址）补一次
   setTimeout(refresh, 160)
 
-  // 读到章末的那一刻，立刻把当前章的小点补上，不用等切页
+  // 读到章末 / 已读被取消的那一刻，立刻刷新目录小点，不用等切页
   onChapterRead(() => refreshReadMarks())
 }
