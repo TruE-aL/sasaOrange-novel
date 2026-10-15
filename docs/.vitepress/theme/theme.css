@@ -824,6 +824,46 @@ html.theme-orange.dark {
   }
 }
 
+/* ---- 960–1280px：折叠按钮改贴到「本页目录」那一行的右端 ----
+   这个区间里 VitePress 会把目录从右侧栏搬成 VPLocalNav 里的一条
+   「本页目录 ›」按钮（≥1280px 才回到右栏，<960px 干脆没有）。
+   原来的按钮贴在侧边栏右缘（left ≈ sidebar-width），正好压在
+   那条「本页目录」上 —— 图标和文字叠在一起，谁也看不清。
+
+   这里改贴右边：和 VPLocalNav 的容器右缘对齐，「本页目录」在左、
+   折叠按钮在右，各占一头。
+
+   ⚠️ 只在**展开态**生效：
+     · 展开时右边有「本页目录」那条，按钮贴它右边才有意义；
+     · 收起后整条 VPLocalNav 都被藏了（见上面 763 行那条规则），右边
+       空无一物，按钮再贴右边就变成孤零零挂在搜索框下面了。
+       收起态沿用下面的 left:10px，回到页面最左 —— 和 ≥1280px 的
+       收起行为保持一致（那时按钮也是靠左的）。
+   所以这里不覆盖 html.novel-sidebar-collapsed 的 left。 */
+@media (min-width: 960px) and (max-width: 1279px) {
+  .Layout.novel-chapter .novel-sidebar-toggle {
+    /* 贴到「本页目录」那一行的右端，和它的容器右缘对齐。
+       写 right 而不是 left：右侧是固定的，跟折叠状态无关，
+       所以展开时收起/展开这个按钮不该再横向滑动。 */
+    left: auto;
+    right: 26px;
+    /* 和 VPLocalNav 同一行：条高 52px、垂直居中，26px 的按钮居中后上边距 13px */
+    top: calc(var(--vp-nav-height) + 13px);
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  }
+
+  /* 收起态：把 left 还回来（贴页面最左），和上面的 right 会打架，
+     所以这里显式清掉 right —— 否则 right 仍在生效，按钮会被两头拉扯。 */
+  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-toggle {
+    left: 10px;
+    right: auto;
+    /* 收起后没有「本页目录」那条了，回到贴顶栏下缘的常规位置 */
+    top: calc(var(--vp-nav-height) + 12px);
+    transition: left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1)),
+      color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  }
+}
+
 .novel-chapter .vp-doc {
   font-size: var(--novel-reader-size, 20px);
   line-height: var(--novel-reader-leading, 1.95);
