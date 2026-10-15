@@ -1,5 +1,5 @@
 import { onNavigationEnd, normalizePath } from './navigation'
-import { PROGRESS_STORAGE_KEY } from './readingProgress'
+import { PROGRESS_STORAGE_KEY, readPaths as readChapterPaths, onChapterRead } from './readingProgress'
 
 /**
  * 书架上的「继续阅读」：
@@ -78,15 +78,28 @@ function markReadChapters(readSet: Set<string>) {
   }
 }
 
+/**
+ * 刷新目录里的「已读」小点。
+ *
+ * 已读来自 novel-read 这份独立存储（读到底才算），不再从阅读位置反推——
+ * 那两者语义相反，反推会导致「章末点下一章」时小点丢失。
+ */
+function refreshReadMarks() {
+  try {
+    markReadChapters(new Set(readChapterPaths().map((path) => normalizePath(path))))
+  } catch (error) {
+    console.error('[novel] 已读标记失败：', error)
+  }
+}
+
 /** 把「继续阅读 / 读过的章节」这些标记一次性刷出来 */
 function refresh() {
-  const paths = progressPaths()
   try {
-    applyContinueReading(paths)
-    markReadChapters(new Set(paths))
+    applyContinueReading(progressPaths())
   } catch (error) {
     console.error('[novel] 书架增强失败：', error)
   }
+  refreshReadMarks()
 }
 
 export function installShelf() {
@@ -97,4 +110,7 @@ export function installShelf() {
   })
   // 首屏（刷新 / 直接输网址）补一次
   setTimeout(refresh, 160)
+
+  // 读到章末的那一刻，立刻把当前章的小点补上，不用等切页
+  onChapterRead(() => refreshReadMarks())
 }

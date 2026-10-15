@@ -19,11 +19,45 @@ import {
  */
 export const PROGRESS_STORAGE_KEY = 'novel-progress'
 
+/**
+ * 「已读」单独存一份，和阅读位置分开。
+ *
+ * 为什么要分开：这两件事的语义是相反的。
+ *   · novel-progress 记「读到哪儿了」——读到底反而要清掉，下次从头读；
+ *   · novel-read     记「读没读完」——读到底正是要记下来的那一刻。
+ * 之前把「已读」从 progress 反推，于是「在章末点下一章」这条最常见的路径
+ * 恰好把记录清了，目录里的小点就不见了。现在各管各的。
+ */
+export const READ_STORAGE_KEY = 'novel-read'
 /** 顶部进度条用的百分比 0–100。（纯函数，放在这里是因为它和阅读进度同属一件事） */
 export function progressPercent(scrollTop: number, scrollHeight: number, innerHeight: number) {
   const max = scrollHeight - innerHeight
   if (!(max > 0)) return 0
   return Math.min(100, Math.max(0, Math.round((scrollTop / max) * 100)))
+}
+
+/**
+ * 「某一章刚刚读完」的回调表。
+ *
+ * shelf.ts 需要在这个时刻即时把目录小点刷出来（不等切页），
+ * 但它已经 import 了本模块，这里再 import 回去就成环了。
+ * 所以反过来：由 shelf 注册回调，本模块在读完时调用，方向单向。
+ */
+type ReadListener = (path: string) => void
+const readListeners: ReadListener[] = []
+
+export function onChapterRead(listener: ReadListener) {
+  readListeners.push(listener)
+}
+
+function emitRead(path: string) {
+  for (const listener of readListeners) {
+    try {
+      listener(path)
+    } catch (error) {
+      console.error('[novel] 已读回调出错：', error)
+    }
+  }
 }
 
 /** 太靠上（不足这么多像素）就不必恢复 */
@@ -71,6 +105,58 @@ function clear(path: string) {
   write(read().filter((item) => item.path !== path))
 }
 
+/** 读过的章节路径（存进来时就统一了写法，取出来可直接比对） */
+export function readPaths(): string[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(READ_STORAGE_KEY) || '[]')
+    if (!Array.isArray(raw)) return []
+    return raw.filter((item): item is string => typeof item === 'string' && item.length > 0)
+  } catch {
+    return []
+  }
+}
+
+function writeRead(paths: string[]) {
+  try {
+    localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(paths.slice(-MAX_ENTRIES)))
+  } catch {
+    // 隐私模式写不了就算了
+  }
+}
+
+/** 把一章标成已读；返回是否真的产生了变化（没变化就不用去刷目录） */
+export function markRead(path: string): boolean {
+  const paths = readPaths()
+  if (paths.includes(path)) return false
+  writeRead([...paths, path])
+  return true
+}
+
+/**
+ * 章节读完：清掉阅读位置（下次从头读），并记进已读集合。
+ * 第一次读完时通知监听者（shelf 借此即时刷新目录小点）。
+ */
+function finish(path: string): void {
+  clear(path)
+  if (markRead(path)) emitRead(path)
+}
+
+/**
+ * 老版本只存了 novel-progress，升级后要把「已有进度」并进已读集合，
+ * 否则老读者会突然发现目录小点全没了。整个生命周期只跑一次。
+ */
+function migrateLegacyRead() {
+  try {
+    if (localStorage.getItem('novel-read-migrated') === '1') return
+    for (const entry of read()) {
+      if (entry.y > 0) markRead(entry.path)
+    }
+    localStorage.setItem('novel-read-migrated', '1')
+  } catch {
+    // 迁移失败不影响使用
+  }
+}
+
 /** 正文页才有这个类名（由 config.mts 的 transformPageData 注入） */
 function isReadingPage() {
   return Boolean(document.querySelector('.Layout.novel-chapter'))
@@ -94,6 +180,9 @@ export function installReadingProgress(router: VitePressRouter) {
       }
     }
 
+  // 老读者的旧数据先并进已读集合，再开始正常逻辑
+  safe(migrateLegacyRead)()
+
   // 首屏时 router.route 还停在默认的 "/"，真正的页面地址看 location 才准
   let currentPath = currentRoutePath(router) || normalizePath(window.location.pathname)
   let pending: Entry | null = null
@@ -105,6 +194,16 @@ export function installReadingProgress(router: VitePressRouter) {
   const capture = () => {
     if (!isReadingPage()) return
     pending = { path: currentPath, y: scrollTop() }
+  }
+
+  /**
+   * 是否已经滚到「读完了」那条线。
+   * 判定只有这一处，flush 与滚动即时标记都用它，避免两边标准跑偏。
+   */
+  const reachedEnd = () => {
+    if (!isReadingPage()) return false
+    const bottom = document.documentElement.scrollHeight - window.innerHeight
+    return bottom > 0 && scrollTop() >= bottom - FINISHED_GAP
   }
 
   /** 把 capture 记下的位置写进 localStorage */
@@ -119,15 +218,21 @@ export function installReadingProgress(router: VitePressRouter) {
 
     const bottom = document.documentElement.scrollHeight - window.innerHeight
     if (bottom > 0 && y >= bottom - FINISHED_GAP) {
-      // 这一章读到底了，下次从开头读
-      clear(path)
+      // 这一章读到底了：位置清掉（下次从开头读），同时记进已读
+      finish(path)
     } else if (y > 0) {
       save(path, y)
     }
   }
 
+  /** 读到页尾就即时标记：读者停在章末不动时，目录里也该立刻出点 */
+  const markIfFinished = () => {
+    if (reachedEnd()) finish(currentPath)
+  }
+
   const onScroll = () => {
     capture()
+    markIfFinished()
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = setTimeout(flush, 300)
   }
@@ -160,10 +265,11 @@ export function installReadingProgress(router: VitePressRouter) {
     true
   )
 
-  /** 离开这一页前先把位置存好 */
+  /** 离开这一页前先把位置存好；如果正停在章末，也要补记「已读」 */
   onNavigationStart(
     safe(() => {
       capture()
+      markIfFinished()
       flush()
     })
   )
