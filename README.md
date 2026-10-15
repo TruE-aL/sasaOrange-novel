@@ -8,10 +8,10 @@
 ## 日常使用
 
 ```bash
-npm run docs:dev      # 本地预览（自动同步 + 监听作品目录），默认 http://localhost:5173
-npm run docs:build    # 构建静态站到 docs/.vitepress/dist
-npm run docs:preview  # 预览已构建的站点
-npm run docs:sync     # 只更新生成的书架页/作品页，不启动服务
+pnpm docs:dev         # 本地预览（自动同步 + 监听作品目录），默认 http://localhost:5173
+pnpm docs:build       # 构建静态站到 docs/.vitepress/dist
+pnpm docs:preview     # 预览已构建的站点
+pnpm docs:sync        # 只更新生成的书架页/作品页，不启动服务
 ```
 
 `docs:dev` 会先同步一次并**一直监听 `docs/novels/`**：改文字即时生效；
@@ -66,7 +66,7 @@ Cloudflare Pages 这类云构建环境都能出图，所以图标和封面不必
 1. 复制 `docs/novels/_模板/` 成 `docs/novels/<新书名>/`；
 2. 改 `novel.json`（`slug` 建议用拼音或英文，**发布后不要改**）；
 3. 把章节按 `01-第一章.md`、`02-第二章.md`…… 命名放进去，每篇正文第一个 `# 标题` 是章节名；
-4. 跑 `npm run docs:dev`，书架首页会自动多出一张卡片。
+4. 跑 `pnpm docs:dev`，书架首页会自动多出一张卡片。
 
 章节数量不限，顺序永远是「文件名前缀小的在前」。想在中间插一章，就在那个编号上插，
 再把后面的文件依次顺延。
@@ -309,7 +309,7 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 读者在阅读设置里切到「黑体」时，就不再需要这个字体文件了。
 
 ```bash
-npm run fonts:build     # 重新生成子集（新章节出现生僻字时跑一次）
+pnpm fonts:build        # 重新生成子集（新章节出现生僻字时跑一次）
 ```
 
 这个脚本从系统字体 `NotoSerifCJK-Regular.ttc` 里取字（可用环境变量
@@ -346,11 +346,11 @@ pages_build_output_dir = "docs/.vitepress/dist"
 
 两种发布方式：
 
-1. **本地发布**：`npx wrangler login` 登录一次，然后 `npm run docs:deploy`
-   （等于 `npm run docs:build && npx wrangler pages deploy`）。
+1. **本地发布**：`npx wrangler login` 登录一次，然后 `pnpm docs:deploy`
+   （等于 `pnpm docs:build && npx wrangler pages deploy`）。
    首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
-2. **Pages 连 Git 仓库**：在 Cloudflare 控制台选构建命令 `npm run docs:build`、
-   输出目录 `docs/.vitepress/dist`。图片处理用的是 sharp（npm 依赖，卸载装时一并装好），
+2. **Pages 连 Git 仓库**：在 Cloudflare 控制台选构建命令 `pnpm docs:build`、
+   输出目录 `docs/.vitepress/dist`。图片处理用的是 sharp（devDependency，装依赖时一并装好），
    云端没有 ImageMagick 也能出图，不需要额外配置。
 
 `name` 决定了默认域名，首次部署后不能改，想换的话在部署前改。
@@ -366,13 +366,13 @@ pages_build_output_dir = "docs/.vitepress/dist"
 ```bash
 # 1. Ctrl+C 停掉正在跑的开发服务器（必须停，运行中清缓存没用）
 # 2. 清缓存
-npm run docs:clean
+pnpm docs:clean
 # 3. 重新启动，然后在浏览器里硬刷新（手机上：关掉标签页重新打开，或清除站点数据）
-npm run docs:dev
+pnpm docs:dev
 ```
 
 还不行就看浏览器控制台的红色报错——那是客户端真正抛出的错误，把第一行发我就能定位。
 
 **只用 curl 检查时注意**：开发服务器对任意路径都返回那个只有
 `<div id="app"></div>` 的空壳（内容由浏览器端渲染），所以 curl 看不到正文是正常的；
-要确认产物有没有内容，用 `npm run docs:build && npm run docs:preview`。
+要确认产物有没有内容，用 `pnpm docs:build && pnpm docs:preview`。
