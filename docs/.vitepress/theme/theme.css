@@ -771,20 +771,37 @@ html.theme-orange.dark {
   }
 }
 
-/* ---- 折叠按钮 ----
-   按钮是 .Layout 的子节点，所以父级选择器直接用 .Layout.novel-chapter。
-   收起前贴在侧边栏右缘；收起后滑到页面最左侧——两处的 left 值都带过渡，
-   于是收起时按钮会跟着侧边栏一起「滑」过去。
+/* ---- 目录工具条（折叠按钮 + 清空阅读记录按钮）----
+   容器是 .Layout 的子节点，所以父级选择器直接用 .Layout.novel-chapter。
+   定位（fixed / left / top）全交给容器，两个按钮只在里面横排 —— 这样
+   新增按钮不用各自抄一遍 media query，以后再加也一样。
 
-   整个按钮包在 min-width:960px 里：组件本身也会判断桌面端才渲染，
+   注意：收起前贴在侧边栏右缘；收起后滑到页面最左侧——两处的 left 值都带
+   过渡，于是收起时整条工具条会跟着侧边栏一起「滑」过去。
+
+   整个工具条包在 min-width:960px 里：组件本身也会判断桌面端才渲染，
    这里是兜底，保证手机上即使组件先挂载了也不会闪出来。 */
 @media (min-width: 960px) {
-  .Layout.novel-chapter .novel-sidebar-toggle {
+  .Layout.novel-chapter .novel-sidebar-tools {
     position: fixed;
-    /* 收起前：贴在侧边栏右缘（和 Teek 一样留 10px 内缩） */
+    /* 收起前：工具条右缘贴在侧边栏右缘（和 Teek 一样留 10px 内缩） */
     left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + var(--vp-sidebar-width) - 32px + 10px);
     top: calc(var(--vp-nav-height) + 12px);
     z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    /* left 跟着折叠一起滑；其余是 hover 的即时反馈 */
+    transition: left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1));
+  }
+
+  /* 收起后：工具条跟着滑到最左边 */
+  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-tools {
+    left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + 10px);
+  }
+
+  /* 两个按钮共用一套外观 */
+  .Layout.novel-chapter .novel-sidebar-tools button {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -796,58 +813,59 @@ html.theme-orange.dark {
     background-color: var(--vp-c-bg);
     color: var(--vp-c-text-2);
     cursor: pointer;
-    /* left 跟着折叠一起滑；其余是 hover 的即时反馈 */
-    transition: left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1)),
-      color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
   }
 
-  .Layout.novel-chapter .novel-sidebar-toggle:hover {
+  .Layout.novel-chapter .novel-sidebar-tools button:hover {
     border-color: var(--vp-c-brand-2);
     background-color: var(--vp-c-brand-soft);
     color: var(--vp-c-brand-1);
   }
 
-  /* 收起后：按钮跟着滑到最左边 */
-  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-toggle {
-    left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + 10px);
+  /* 清空成功：短暂高亮主题色 + 换成对勾，1.2s 后自动还原 */
+  .Layout.novel-chapter .novel-history-clear.is-cleared {
+    border-color: var(--vp-c-brand-2);
+    background-color: var(--vp-c-brand-soft);
+    color: var(--vp-c-brand-1);
   }
 }
 
-/* 窗口不够宽时按「贴左边」处理，避免按钮飞出可视区 */
+/* 窗口不够宽时按「贴左边」处理，避免工具条飞出可视区 */
 @media (max-width: 1440px) {
-  .Layout.novel-chapter .novel-sidebar-toggle {
+  .Layout.novel-chapter .novel-sidebar-tools {
     left: calc(var(--vp-sidebar-width) + 10px);
   }
 
-  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-toggle {
+  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-tools {
     left: 10px;
   }
 }
 
-/* ---- 960–1280px：折叠按钮往左挪一点，别压住「本页目录」----
+/* ---- 960–1280px：工具条往左挪一点，别压住「本页目录」----
    这个区间里 VitePress 会把目录从右侧栏搬成 VPLocalNav 里的一条
    「本页目录 ›」按钮（≥1280px 才回右栏，<960px 干脆没有）。
 
-   原来的按钮左缘在 left ≈ sidebar-width - 32px + 10px（1200px 下是 282），
-   宽 26px，右缘到 308 —— 而「本页目录」那条从分界线 272 就开始了（图标占
+   原来按钮左缘在 left ≈ sidebar-width + 10px（1200px 下是 282）、宽 26px，
+   右缘到 308 —— 而「本页目录」那条从分界线 272 就开始了（图标占
    272–304）。按钮右缘 308 > 272，于是图标和文字被压住。
 
-   改法就是把它**往左挪到分界线里侧**：右缘缩进到分界线左边 8px 左右，
-   left 从 282 变成约 238，左移约 44px。按钮仍在原来那一带（贴着侧边栏
-   分界线），没有往右边跑 —— 只是让开了「本页目录」的图标。
+   改法就是把它**往左挪到分界线里侧**：右缘缩进到分界线左边 8px 左右。
+   工具条现在含两个按钮（26 + 6 + 26 = 58px），所以左缘 = 272 - 8 - 58 = 206。
+   工具条仍在原来那一带（贴着侧边栏分界线），没有往右边跑 ——
+   只是让开了「本页目录」的图标。
    ---- */
 @media (min-width: 960px) and (max-width: 1279px) {
-  .Layout.novel-chapter .novel-sidebar-toggle {
-    /* 右缘落在侧边栏分界线里侧、留 8px 空隙（272 - 8 - 26 = 238）。
+  .Layout.novel-chapter .novel-sidebar-tools {
+    /* 右缘落在侧边栏分界线里侧、留 8px 空隙（272 - 8 - 58 = 206）。
        用 --vp-sidebar-width 表达，不依赖具体像素。 */
-    left: calc(var(--vp-sidebar-width) - 34px);
+    left: calc(var(--vp-sidebar-width) - 66px);
     right: auto;
     /* 和 VPLocalNav 同一行：条高 52px、垂直居中，26px 的按钮居中后上边距 13px */
     top: calc(var(--vp-nav-height) + 13px);
   }
 
-  /* 收起态：侧边栏没了，按钮按惯例滑到页面最左（和 ≥1280px 的收起行为一致） */
-  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-toggle {
+  /* 收起态：侧边栏没了，工具条按惯例滑到页面最左（和 ≥1280px 的收起行为一致） */
+  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-tools {
     left: 10px;
   }
 }
@@ -1291,17 +1309,17 @@ body:has(.novel-navprogress) .novel-progress {
   letter-spacing: 0.02em;
 }
 
-/* 读过的章节：章节名后面一枚小圆点 */
+/* 读过的章节：章节名后面一枚小圆点（做得克制一点，别太抢眼） */
 .VPSidebar .VPSidebarItem.level-1.is-read .toc-title::after {
   content: '';
   display: inline-block;
-  width: 5px;
-  height: 5px;
-  margin-left: 8px;
+  width: 4px;
+  height: 4px;
+  margin-left: 7px;
   border-radius: 50%;
   background-color: var(--vp-c-brand-3);
   vertical-align: middle;
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 /* 章节项：悬停和当前章节都垫一层主题色底色 */

@@ -123,6 +123,27 @@ export function readPaths(): string[] {
   }
 }
 
+/**
+ * 一键清空所有阅读记录：阅读位置 + 已读标记。
+ *
+ * 两处都要清：
+ *   · novel-progress —— 否则「继续阅读」还会指着上次那一章；
+ *   · novel-read     —— 否则目录里的已读小点擦不掉。
+ * 另外把老数据迁移的标记也一并清掉，省得哪天迁移逻辑再跑一遍又把进度当已读。
+ *
+ * 清完通知监听者（shelf 借此立刻把目录小点抹掉，不用等切页）。
+ */
+export function clearAllReadData(): void {
+  try {
+    localStorage.removeItem(PROGRESS_STORAGE_KEY)
+    localStorage.removeItem(READ_STORAGE_KEY)
+    localStorage.removeItem('novel-read-migrated')
+  } catch {
+    // 隐私模式写不了就算了
+  }
+  emitReadChange()
+}
+
 function writeRead(paths: string[]) {
   try {
     localStorage.setItem(READ_STORAGE_KEY, JSON.stringify(paths.slice(-MAX_ENTRIES)))
