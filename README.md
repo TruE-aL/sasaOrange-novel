@@ -337,26 +337,69 @@ pnpm fonts:build        # 重新生成子集（新章节出现生僻字时跑一
 
 ## 部署
 
-项目根目录的 `wrangler.toml` 里已经写好 Cloudflare Pages 的配置：
+站点部署在 **Cloudflare Pages**，项目名 `sasaorange-novel`，
+正式地址是 `https://sasaorange-novel.pages.dev`。
+
+配置写在项目根目录的 `wrangler.toml`：
 
 ```toml
 name = "sasaorange-novel"                  # 决定默认域名 sasaorange-novel.pages.dev
 pages_build_output_dir = "docs/.vitepress/dist"
 ```
 
-两种发布方式：
+### 自动部署（推荐，日常就用这个）
 
-1. **本地发布**：`npx wrangler login` 登录一次，然后 `pnpm docs:deploy`
-   （等于 `pnpm docs:build && npx wrangler pages deploy`）。
-   首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
-2. **Pages 连 Git 仓库**：在 Cloudflare 控制台选构建命令 `pnpm docs:build`、
-   输出目录 `docs/.vitepress/dist`。图片处理用的是 sharp（devDependency，装依赖时一并装好），
-   云端没有 ImageMagick 也能出图，不需要额外配置。
+仓库里已经配好 `.github/workflows/deploy.yml`：**只要往 `main` 推代码，就会自动构建并发布**，
+不用在本地做任何事。整个流程是：
 
-`name` 决定了默认域名，首次部署后不能改，想换的话在部署前改。
+```
+push 到 main
+  → 装 pnpm（读 package.json 的 packageManager 字段）
+  → pnpm install --frozen-lockfile
+  → pnpm docs:build
+  → wrangler pages deploy → sasaorange-novel.pages.dev
+```
 
-部署前记得把 `docs/site.json` 里的 `url` 改成真实域名，`og:image`、canonical、
-订阅源和站点地图里的绝对链接才正确。
+想手动跑一次，去 **Actions → Deploy to Cloudflare Pages → Run workflow**。
+
+它依赖仓库里的两个 Secrets（**Settings → Secrets and variables → Actions**），
+首次配置时需要自己建：
+
+| Secret | 从哪来 | 需要的权限 |
+| --- | --- | --- |
+| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens → Create Custom Token | `Account` / `Cloudflare Pages` / **Edit** |
+| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages → 右侧栏 Account ID | — |
+
+> 别用 Global API Key，范围太大；自定义 Token 只开 Pages 的 Edit 就够。
+
+**「推上去没反应」先查这里**：Secrets 名字拼错（大小写敏感）、Token 权限没给 Edit、
+或者 Cloudflare 上项目名不叫 `sasaorange-novel`（名字对不上 wrangler 会去新建一个项目）。
+
+### 手动部署（备选）
+
+不想等 CI、或者要在没配 Actions 的环境发一次：
+
+```bash
+npx wrangler login        # 登录一次即可
+pnpm docs:deploy          # = pnpm docs:build && npx wrangler pages deploy
+```
+
+首次如果提示项目不存在，先跑一次 `npx wrangler pages project create sasaorange-novel`。
+
+### 另一种做法：Cloudflare 连 Git 仓库
+
+在 Cloudflare 控制台新建 Pages 项目并连上这个仓库，构建命令 `pnpm docs:build`、
+输出目录 `docs/.vitepress/dist`。
+
+⚠️ **和上面的 GitHub Actions 二选一**——两个都开会对同一次推送部署两遍。
+图片处理用的是 sharp（devDependency，装依赖时一并装好），云端没有 ImageMagick 也能出图。
+
+### 几个注意点
+
+- `name` 决定默认域名，**首次部署后不能改**，想换的话得在部署前改（否则只能重建项目）。
+- 部署前记得把 `docs/site.json` 里的 `url` 改成真实域名，`og:image`、canonical、
+  订阅源和站点地图里的绝对链接才正确。
+- 构建产物 `docs/.vitepress/dist` 在 `.gitignore` 里，所以无论哪条路径都是**先构建再上传**。
 
 ## 出问题了怎么排查
 
