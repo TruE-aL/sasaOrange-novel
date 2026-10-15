@@ -149,19 +149,6 @@ Cloudflare Pages 这类云构建环境都能出图，所以图标和封面不必
 - 卡片右上角那枚小圆标是 `novel.json` 里的 `status`（已完结 / 连载中 / 语录集…），
   不写就不显示。
 
-## 继续阅读
-
-读者在某一章读到一半、下次回到书架，卡片上的「开始阅读」会变成
-**「继续阅读 · 第6章　裂痕」**，点了直接跳回那一章，封面还会多一圈主题色细环。
-侧边栏目录里读过的章节，标题后面也会点一个小圆点。
-
-这是纯客户端能力，建立在「阅读进度」之上（见下面那节），不影响任何未读过的读者：
-没有进度时书卡就是普通的「开始阅读」。
-
-实现上分两处：每部作品的章节清单随首页注入到 `<head>`
-（`docs/.vitepress/config.mts` 的 `transformHead`，因为 markdown 里的 `<script>`
-会被 VitePress 过滤掉），客户端逻辑在 `theme/shelf.ts`。
-
 ## 目录上显示的名字
 
 目录项分成两截排版，像书前的目录页：
@@ -230,17 +217,61 @@ VitePress 会把这些图片打包进站点。
 深色模式统一换成黑影——所以切配色时阴影不会「发脏」。改成一整套阴影也行，
 直接覆盖那三个 `--novel-shadow-*` 变量即可。
 
-## 阅读设置（字号 / 行距 / 字体）
+## 阅读设置（字号 / 行距 / 字体 / 版心）
 
 章节页顶栏右侧有个 **Aa** 按钮，点开可以自助调整：
 
 - **字号** 14–32px
 - **行距** 1.5–2.6
 - **字体** 宋体（默认，下面那节的思源宋体子集）/ 黑体（系统默认）
+- **版心** 480–1400px（**仅桌面端**）：正文那一栏的最大宽度，想让文字排得宽一点就拉大
 
 只在正文页显示（其它页面改了也看不出效果），选择记在 localStorage 里，
 首屏脚本会在渲染前先应用，所以刷新不会闪一下。默认值在
 `docs/.vitepress/theme/ReaderSettings.ts` 的 `DEFAULTS` 里。
+
+## 章节目录折叠（仅桌面端）
+
+章节页左侧目录的上方有一条小工具条，两个按钮：**左＝清空阅读记录，右＝收起/展开目录**。
+和目录同色（`--vp-c-brand-1`），带边框，按下有反馈。手机上（<960px）不渲染。
+
+**目录默认是收起的**，只有点按钮才展开。状态**不做任何记忆**：
+
+- 从书架点「开始阅读」进来 → 收起（每次都从头开始，不会突然冒出个目录）
+- 目录里翻到下一章 / 上一章 → **保持当前状态**（读到一半目录不会被收走）
+- 回到书架首页等非正文页 → 收起，下次进来仍是收起态
+
+实现要点：
+
+- 收起不是 `display: none`，而是把侧边栏 `width` 过渡到 0——这样才有「推着正文走」的动画，
+  正文的左侧留白同步减少（`theme.css` 第 7 节的 `@media (min-width: 960px)` 块）
+- 状态类 `novel-sidebar-collapsed` 挂在 **`<html>`** 上，而 `novel-chapter`
+  由 VitePress 按 frontmatter 挂在 **`div.Layout`** 上——两者位置不同，
+  选择器必须都顾及（写成 `html.novel-chapter` 永远匹配不到，动画会失效）
+- 首屏在 `config.mts` 的防闪烁脚本里**提前加好** `novel-sidebar-collapsed`，
+  避免先渲染出展开的侧边栏、再「唰」地收回去
+- 组件在 `theme/SidebarToggle.ts`。判断「是否刚进这本书」用的是 `watch(visible)`
+  而不是 `onNavigationEnd`——组件实例在「章 → 章」之间会被 Vue 复用，
+  只有 `visible`（`pageClass === 'novel-chapter'`）才会在「进出这本书」时翻转
+- 那份避让「本页目录」的 CSS（960–1279px 区间）：该区间 VitePress 会把右侧目录
+  搬成顶栏里的一条「本页目录 ›」，工具条专门往左挪了 62px 让开它
+
+## 继续阅读
+
+读者在某一章读到一半、下次回到书架，卡片上的「开始阅读」会变成
+**「继续阅读 · 第6章　裂痕」**，点了直接跳回那一章，封面还会多一圈主题色细环。
+侧边栏目录里读过的章节，标题后面也会点一个小圆点。
+
+这里说的「读到一半」实际按**已读记录**来算（见下面「阅读记录」一节）：
+卡片指向的是**这本书最近读过的那一章**，跳过去也是从那一章开头读，不恢复章内位置。
+
+这是纯客户端能力，不影响任何未读过的读者：没有记录时书卡就是普通的「开始阅读」。
+
+实现上分两处：每部作品的章节清单随首页注入到 `<head>`
+（`docs/.vitepress/config.mts` 的 `transformHead`，因为 markdown 里的 `<script>`
+会被 VitePress 过滤掉），客户端逻辑在 `theme/shelf.ts`。
+`readingProgress.ts` 在「已读状态变化」时会回调 `shelf.ts` 即时刷新目录小点
+（方向单向：`shelf → readingProgress` 注册回调，避免两个模块互相 import 成环）。
 
 ## 切页动画
 
@@ -261,31 +292,47 @@ Sakurairo 主题，GPL-2.0）里 `Post.vue` 的 `iro-main` / `iro-fade-in-down` 
 - 调快/调慢就改那两处 `0.5s` / `1s`，以及关键帧里的 `translateY(22px)`；
   不想要就删掉第 8 节整节
 
-## 阅读进度
+## 阅读记录（已读章节）
 
-每章读到哪儿会记下来，下次进这一章自动接着读（`docs/.vitepress/theme/readingProgress.ts`，
-数据存在 localStorage 的 `novel-progress` 里，路径统一成不含 `.html` / `?query` 的干净写法）。
+只记**「读到过哪些章节」**，不记滚动位置——所以任何一次进入都从文章头开始读，
+不会出现「从书架点开始阅读，正文却停在上次读到一半的地方」。
+
+数据存在 localStorage 的 `novel-read` 里（`docs/.vitepress/theme/readingProgress.ts`），
+路径统一成不含 `.html` / `?query` 的干净写法。
+
+**判定标准：读到本章 90% 才算已读。** 不用「距页尾 40px」那种固定像素差，
+因为它跟章节长短无关——长章节末尾留白多、短章节 40px 占比很大；改用比例后长短章节一视同仁。
+页面短到没有可滚动空间（一眼看完）时不算已读，否则一进来就自动亮点了。
+
+⚠️ 「读到底」只在**读者自己滚动**时判定，全程不看切页那一刻的滚动值——
+VitePress 的路由在切页瞬间会自己滚一下（实测停在顶部点「下一章」，
+`scrollY` 会在半帧内冲到 `scrollHeight`），那个值不可信，用它会把刚翻开
+没读的章节误标成已读。所以：
+
+- 读者滚到 90% 的那一刻 → 立即标记（`onScroll` 里实时判）
+- 离开这一章时 → **只负责「没读到底就收回小点」，不做补记**；
+  且用切页前记下的位置判断，并用一道 `frozen` 闸门挡住紧随其后的假滚动事件
+- 刷新 / 关标签页 → 走 `beforeunload` / `visibilitychange`，实时位置可信，正常记录
+- 「已读」表示「这一章读到过尾」：重新打开一章、没读到底就走了，小点会收回去
+
+想清空所有记录：章节页的目录工具条上有一个**清空按钮**（见前面「章节目录折叠」一节），
+或者在浏览器控制台里 `localStorage.removeItem('novel-read')`。
+记录最多保留 120 章，超出丢掉最早的。
+
+### 进度条与加载条
 
 正文页顶部还有一条 3px 的进度条（`theme/ReadingProgress.ts`，写法借鉴 sakurairo 的
 `.iro-scroll-percent`），宽度就是已读百分比；只在正文页显示，首页与许可页不显示。
 想换颜色就改 `theme.css` 第 9 节里的 `background-image`，不想要就把 `theme/index.ts`
 里 `'layout-top'` 那一行删掉。
 
-访问不存在的地址时的 404 文案也是中文的，写在 `docs/.vitepress/config.mts` 的
-`themeConfig.notFound` 里（`title` / `quote` / `linkText`）。
-
 切页时顶部还会出现一条更细（2px）的加载条，见 `theme/NavProgress.ts`——实现思路
 借自 sakurairo 用的 `vitepress-plugin-nprogress`，但没引依赖、自己写了 30 行：
 跳转开始后**延迟 120ms** 才出现（静态站通常几十毫秒就读完了，这样不会闪一下），
 结束时补到 100% 再淡出。不想要就把 `theme/index.ts` 里的 `installNavProgress()` 删掉。
 
-- 只记**正文页**：书架首页、作品许可页这些不记
-- 点「上一章 / 下一章」进入的新章节**不恢复**，从开头读（那种情况读者通常想看新内容）
-- 带 `#锚点` 的链接不恢复，交给 VitePress 自己定位
-- 已经滚到页尾（读完了）就清掉记录，下次从开头开始
-- 记录最多保留 120 章，超出丢掉最早的
-
-想清空所有进度：浏览器控制台里 `localStorage.removeItem('novel-progress')`。
+访问不存在的地址时的 404 文案也是中文的，写在 `docs/.vitepress/config.mts` 的
+`themeConfig.notFound` 里（`title` / `quote` / `linkText`）。
 
 ### 为什么要有 theme/navigation.ts
 
@@ -349,8 +396,15 @@ pages_build_output_dir = "docs/.vitepress/dist"
 
 ### 自动部署（推荐，日常就用这个）
 
-仓库里已经配好 `.github/workflows/deploy.yml`：**只要往 `main` 推代码，就会自动构建并发布**，
-不用在本地做任何事。整个流程是：
+仓库里已经配好 `.github/workflows/deploy.yml`，三种触发方式：
+
+| 触发 | 结果 |
+| --- | --- |
+| push 到 `main` | 部署**生产环境**（`sasaorange-novel.pages.dev`） |
+| 打开 / 更新 PR | 部署**预览环境**，并在 PR 里自动回帖预览地址 |
+| 手动触发 | 部署生产环境 |
+
+生产流程：
 
 ```
 push 到 main
@@ -359,6 +413,11 @@ push 到 main
   → pnpm docs:build
   → wrangler pages deploy → sasaorange-novel.pages.dev
 ```
+
+PR 预览用**源分支名**做部署分支，Cloudflare 会据此生成
+`<分支名转义>.<项目名>.pages.dev` 的预览地址（转义规则：转小写、非字母数字压成单横线、
+去掉首尾横线，和 Cloudflare 的 branch alias 一致）。每次推送都会更新同一个预览地址，
+工作流再把链接回帖到 PR 评论里，点开就能看。
 
 想手动跑一次，去 **Actions → Deploy to Cloudflare Pages → Run workflow**。
 
