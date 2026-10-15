@@ -1,0 +1,94 @@
+name: Deploy to Cloudflare Pages
+
+# 触发时机：
+#   - push 到 main         -> 部署生产环境
+#   - 打开 / 更新 PR        -> 部署预览环境，并在 PR 里回复预览地址
+#   - 手动触发              -> 部署生产环境
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+
+# 同一分支同时只跑一个部署；新的推送会取消该分支正在进行的旧部署。
+# 用 head_ref（PR 源分支）或 ref_name（普通分支）区分不同分支的并发槽。
+concurrency:
+  group: deploy-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # 读取 package.json 的 packageManager 字段，自动安装对应版本的 pnpm
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build site
+        run: pnpm docs:build
+
+      # PR 用源分支名做部署分支（Cloudflare 会生成 <slug>.<project>.pages.dev 预览地址）；
+      # 非 PR（main / 手动）统一用 main，落到生产环境。
+      - name: Deploy to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy docs/.vitepress/dist --project-name=sasaorange-novel --branch=${{ github.head_ref || github.ref_name }}
+
+  # PR 场景下，把预览地址回帖到 PR 评论里，方便直接点开
+  comment:
+    name: Comment preview URL
+    needs: deploy
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Post preview comment
+        uses: actions/github-script@v7
+        env:
+          BRANCH: ${{ github.head_ref }}
+        with:
+          script: |
+            const branch = process.env.BRANCH || '';
+            // 与 Cloudflare Pages 的 branch alias 规则保持一致：
+            // 转小写、非字母数字压成单横线、去掉首尾横线
+            const slug = branch
+              .toLowerCase()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/^-|-$/g, '');
+            const url = `https://${slug}.sasaorange-novel.pages.dev`;
+            const body = [
+              '### 🚀 预览部署完成',
+              '',
+              `- **分支**：\`${branch}\``,
+              `- **预览地址**：${url}`,
+              '',
+              '_本次预览由 GitHub Actions 自动部署，每次推送会自动更新。_',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
