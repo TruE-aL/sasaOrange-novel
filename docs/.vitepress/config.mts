@@ -212,7 +212,10 @@ export default defineConfig({
         "var r=JSON.parse(localStorage.getItem('novel-reader-settings-v2')||'null');",
         "if(r){if(r.size)d.style.setProperty('--novel-reader-size',r.size+'px');",
         "if(r.leading)d.style.setProperty('--novel-reader-leading',String(r.leading));",
+        "if(r.measure)d.style.setProperty('--novel-measure',r.measure+'px');",
         "if(r.font==='sans')d.classList.add('reader-sans')}",
+        // 目录收起状态是单独一个键：提前加 class，避免刷新后侧边栏先展开再收起那一下
+        "if(localStorage.getItem('novel-sidebar-collapsed')==='1')d.classList.add('novel-sidebar-collapsed');",
         '}catch(e){}'
       ].join('')
     ]
