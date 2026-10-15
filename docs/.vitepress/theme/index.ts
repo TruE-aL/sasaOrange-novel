@@ -3,6 +3,7 @@ import { h } from 'vue'
 import ReaderSettings from './ReaderSettings'
 import ReadingProgress from './ReadingProgress'
 import SchemeSwitch from './SchemeSwitch'
+import SidebarToggle from './SidebarToggle'
 import ChapterEnd from './ChapterEnd'
 import Giscus from './Giscus'
 import { installNavProgress } from './NavProgress'
@@ -45,6 +46,8 @@ export default {
       'nav-bar-content-after': () => [h(SchemeSwitch), h(ReaderSettings)],
       'nav-screen-content-after': () => [h(SchemeSwitch, { withLabel: true }), h(ReaderSettings, { withLabel: true })],
       'layout-top': () => h(ReadingProgress),
+      // 章节目录折叠按钮（仅桌面端正文页，组件自己判断）
+      'layout-bottom': () => h(SidebarToggle),
       // 正文页页尾：本章完的落款 + 评论区（其它页面这两个组件自己返回空）
       'doc-after': () => [h(ChapterEnd), h(Giscus)]
     })
