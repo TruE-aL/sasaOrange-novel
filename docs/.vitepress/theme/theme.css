@@ -16,7 +16,7 @@
  *   3. 淡橙红色系（可切换）   10. 切页加载条
  *   4. 配色切换按钮 / 阅读设置 11. 书架首页
  *   5. 首页 hero              12. 目录（侧边栏）
- *   6. 正文页页尾（落款 / 评论）
+ *   6. 正文页页尾（落款 / 评论） 13. 明暗切换圆形扩散动画
  */
 
 /* ============================================================
@@ -90,6 +90,10 @@ html.reader-sans {
   --novel-sidebar-speed: 0.5s;
   /* 缓动：两端加减速都更柔和，收起/展开时「推」的感觉更自然 */
   --novel-sidebar-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* 明暗切换圆形扩散的时长/缓动（要和 AppearanceTransition.ts 里的常量保持一致） */
+  --novel-appearance-duration: 0.7s;
+  --novel-appearance-ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* 阴影：跟着配色走的一层暖色调（见下面 .dark 里换的黑影） */
   --novel-shadow-rgb: 96, 70, 36;
@@ -1320,4 +1324,58 @@ body:has(.novel-navprogress) .novel-progress {
 
 .VPFooter .message a:hover {
   text-decoration: underline;
+}
+
+/* ============================================================
+   13. 明暗切换的「圆形扩散」动画
+
+   点顶栏的太阳/月亮时，新主题以鼠标位置为圆心扩开、铺满整屏。
+   动画本身由 AppearanceTransition.ts 用 View Transitions API 驱动，这里只管两件事：
+     · 关掉浏览器默认的淡入淡出，改用我们自己的 clip-path；
+     · 规定新旧图层谁在上谁在下。
+
+   思路照抄 JinRudy/JinRudy.github.io（shuimo.css），要点是「图层写死、只往上铺」：
+     old 永远在下面、new 永远在上面，动画永远只打 new、方向永远是从点击处铺开。
+   这样两个方向走同一套代码，也就没有"方向搞反""按主题翻 z-index"这类问题
+   —— 之前那版双向动画（切深色时让旧图收回）正是栽在这里，会闪。
+   ============================================================ */
+
+/*
+ * 关掉浏览器对所有视图过渡伪元素的默认动画，只留我们自己那条 clip-path。
+ * 必须连 group 一起关：只关 old/new 的话，group 还带着约 250ms 的
+ * height/width/transform 过渡在跑，和我们的扩散不同步，会闪。
+ */
+::view-transition-group(root),
+::view-transition-old(root),
+::view-transition-new(root),
+::view-transition-image-pair(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* 图层顺序：旧的在下、新的在上。写死即可，不用管当前是深是浅。 */
+::view-transition-old(root) {
+  z-index: 1;
+}
+::view-transition-new(root) {
+  z-index: 2;
+}
+
+/*
+ * 顶栏那个太阳/月亮小滑块，跟着扩散一起走。
+ * VitePress 原生给 .check 的是 transition: transform 0.25s，而扩散是 560ms ——
+ * 不换成同一时长的话，滑块会 250ms 就滑到位、杵在那儿等动画跑完，看着像抢先跳过去。
+ */
+.Layout .VPNavBar .VPSwitchAppearance .check,
+.Layout .VPNavScreen .VPSwitchAppearance .check {
+  transition: transform var(--novel-appearance-duration, 0.7s)
+    var(--novel-appearance-ease, cubic-bezier(0.4, 0, 0.2, 1));
+}
+
+/* 系统开了「减弱动效」：干脆别扩散了，直接切（JS 那边本来也不会启动，这里是双保险） */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation-duration: 0.01ms !important;
+  }
 }

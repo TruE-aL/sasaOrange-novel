@@ -7,6 +7,7 @@ import SidebarToggle from './SidebarToggle'
 import ChapterEnd from './ChapterEnd'
 import Giscus from './Giscus'
 import { installNavProgress } from './NavProgress'
+import { installAppearanceTransition } from './AppearanceTransition'
 import { installNavigation, type VitePressRouter } from './navigation'
 import { installReadingProgress } from './readingProgress'
 import { installShelf } from './shelf'
@@ -32,7 +33,16 @@ function safely(label: string, run: () => void) {
 // 并把切换按钮挂到顶栏和手机菜单上
 export default {
   extends: DefaultTheme,
-  enhanceApp({ router }: { router: unknown }) {
+  enhanceApp({
+    app,
+    router
+  }: {
+    app: {
+      provide: (key: string, value: unknown) => void
+      runWithContext: <T>(fn: () => T) => T
+    }
+    router: unknown
+  }) {
     if (typeof window === 'undefined') return
     // VitePress 2 自带路由（不是 vue-router），类型声明上游还是旧的，这里按实际情况转一下
     const nav = router as VitePressRouter
@@ -40,6 +50,14 @@ export default {
     safely('阅读进度', () => installReadingProgress(nav))
     safely('导航加载条', () => installNavProgress())
     safely('书架增强', () => installShelf())
+    // 注意用 app.provide / app.runWithContext：VitePress 的 enhanceApp 上下文里
+    // 只有 app / router / siteData，并没有 Vue createApp 那种顶层 provide。
+    safely('明暗切换动画', () =>
+      installAppearanceTransition(
+        (key, value) => app.provide(key, value),
+        (fn) => app.runWithContext(fn)
+      )
+    )
   },
   Layout() {
     return h(DefaultTheme.Layout, null, {
