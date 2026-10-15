@@ -86,6 +86,11 @@ html.reader-sans {
   --novel-hero-wash: rgba(217, 164, 92, 0.16);
   --novel-selection: rgba(217, 164, 92, 0.35);
 
+  /* 章节目录折叠动画时长（和 Teek 的 transition-duration-slow 取同一档） */
+  --novel-sidebar-speed: 0.5s;
+  /* 缓动：两端加减速都更柔和，收起/展开时「推」的感觉更自然 */
+  --novel-sidebar-ease: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* 阴影：跟着配色走的一层暖色调（见下面 .dark 里换的黑影） */
   --novel-shadow-rgb: 96, 70, 36;
   --novel-shadow-sm: 0 2px 6px rgba(var(--novel-shadow-rgb), 0.07);
@@ -706,28 +711,35 @@ html.theme-orange.dark {
    正文的左侧留白同步减少，看起来是侧边栏「推」着正文往左走。
    按钮本身 fixed 定位，left 跟着状态切换，收起后会自己滑到左边。
 
-   三条规则都带 [class] 补一档特异性，压过 VitePress 原生的 [data-v-xxx]：
+   ⚠️ 两个 class 挂的位置不一样，选择器必须都顾及到：
+     · novel-chapter        —— VitePress 按 frontmatter 加在 div.Layout 上（不是 <html>！）
+     · novel-sidebar-*      —— 我们自己在 <html> 上切换
+   写成 `html.novel-chapter` 永远匹配不到，动画会整段失效、变成瞬间归零。
+
+   另外几条规则都带 [class] 补一档特异性，压过 VitePress 原生的 [data-v-xxx]：
      .VPSidebar[data-v-xxx]         → (0,3,0)
      .VPContent.has-sidebar[data-v] → (0,3,0)
      .VPDoc.has-aside .content-container[data-v] → (0,4,0)
    ---- */
 @media (min-width: 960px) {
   /* 只有正文页才启用折叠：首页书架、许可页保持原样 */
-  html.novel-chapter .VPSidebar[class] {
-    /* 收起后挤掉左右内边距，宽度归零 */
-    transition: width var(--novel-sidebar-speed, 0.5s) ease-in-out,
-      padding-left var(--novel-sidebar-speed, 0.5s) ease-in-out,
-      padding-right var(--novel-sidebar-speed, 0.5s) ease-in-out,
-      opacity var(--novel-sidebar-speed, 0.5s);
+  .Layout.novel-chapter .VPSidebar[class] {
+    /* 宽度 / 内边距用 ease-in-out 同步伸缩；
+       opacity 单独走一个更短、更靠前的曲线——文字比宽度先淡掉，
+       否则收缩过程中会看到目录文字被挤成一团。 */
+    transition: width var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1)),
+      padding-left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1)),
+      padding-right var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1)),
+      opacity calc(var(--novel-sidebar-speed, 0.5s) * 0.6) ease-out;
   }
 
   /* 过渡 class 在组件挂载后才加：否则从首页进文章页会看到一次「收起」动画 */
-  html.novel-sidebar-animated .VPContent.has-sidebar[class] {
-    transition: padding-left var(--novel-sidebar-speed, 0.5s) ease-in-out;
+  html.novel-sidebar-animated .Layout.novel-chapter .VPContent.has-sidebar[class] {
+    transition: padding-left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1));
   }
 
   /* ---- 收起态 ---- */
-  html.novel-sidebar-collapsed .VPSidebar[class] {
+  html.novel-sidebar-collapsed .Layout.novel-chapter .VPSidebar[class] {
     width: 0 !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
@@ -735,68 +747,79 @@ html.theme-orange.dark {
     overflow: hidden;
   }
 
-  /* 正文往左挪：留白从「居中留白 + 侧边栏宽」减到只剩居中留白 */
-  html.novel-sidebar-collapsed .VPContent.has-sidebar[class] {
-    padding-left: calc((100% - var(--vp-layout-max-width)) / 2) !important;
+  /* 正文往左挪：留白从「居中留白 + 侧边栏宽」减到只剩居中留白。
+     和 VitePress 原生一致用 100vw：用 100% 会把纵向滚动条的宽度算进去，
+     收起后正文会比展开态偏左一点点。 */
+  html.novel-sidebar-collapsed .Layout.novel-chapter .VPContent.has-sidebar[class] {
+    padding-left: calc((100vw - var(--vp-layout-max-width)) / 2) !important;
   }
 
   /* 目录收起后容器不用再为侧边栏预留，版心就能铺得更开 */
-  html.novel-sidebar-collapsed .VPDoc .container[class] {
+  html.novel-sidebar-collapsed .Layout.novel-chapter .VPDoc .container[class] {
     max-width: none;
   }
 
   /* 顶栏左上角那个「展开目录」的小按钮收起后就没用了，一并隐藏 */
-  html.novel-sidebar-collapsed .VPLocalNav[class] {
+  html.novel-sidebar-collapsed .Layout.novel-chapter .VPLocalNav[class] {
     display: none !important;
   }
 
   /* ---- 版心宽度（Aa 面板里的滑块）----
      带 has-aside 时 VitePress 原生是 (0,4,0)，这里凑到 (0,4,1) 压过它 */
-  html .novel-chapter .VPDoc .content-container[class] {
+  .Layout.novel-chapter .VPDoc .content-container[class] {
     max-width: var(--novel-measure, 720px);
   }
 }
 
-/* ---- 折叠按钮 ---- */
-.novel-sidebar-toggle {
-  position: fixed;
-  /* 收起前：贴在侧边栏右缘 */
-  left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + var(--vp-sidebar-width) - 32px);
-  top: calc(var(--vp-nav-height) + 12px);
-  z-index: 40;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 26px;
-  height: 26px;
-  padding: 0;
-  border: 1px solid var(--vp-c-divider);
-  border-radius: 8px;
-  background-color: var(--vp-c-bg);
-  color: var(--vp-c-text-2);
-  cursor: pointer;
-  transition: left var(--novel-sidebar-speed, 0.5s) ease-in-out,
-    color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
-}
+/* ---- 折叠按钮 ----
+   按钮是 .Layout 的子节点，所以父级选择器直接用 .Layout.novel-chapter。
+   收起前贴在侧边栏右缘；收起后滑到页面最左侧——两处的 left 值都带过渡，
+   于是收起时按钮会跟着侧边栏一起「滑」过去。
 
-.novel-sidebar-toggle:hover {
-  border-color: var(--vp-c-brand-2);
-  background-color: var(--vp-c-brand-soft);
-  color: var(--vp-c-brand-1);
-}
+   整个按钮包在 min-width:960px 里：组件本身也会判断桌面端才渲染，
+   这里是兜底，保证手机上即使组件先挂载了也不会闪出来。 */
+@media (min-width: 960px) {
+  .Layout.novel-chapter .novel-sidebar-toggle {
+    position: fixed;
+    /* 收起前：贴在侧边栏右缘（和 Teek 一样留 10px 内缩） */
+    left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + var(--vp-sidebar-width) - 32px + 10px);
+    top: calc(var(--vp-nav-height) + 12px);
+    z-index: 40;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--vp-c-divider);
+    border-radius: 8px;
+    background-color: var(--vp-c-bg);
+    color: var(--vp-c-text-2);
+    cursor: pointer;
+    /* left 跟着折叠一起滑；其余是 hover 的即时反馈 */
+    transition: left var(--novel-sidebar-speed, 0.5s) var(--novel-sidebar-ease, cubic-bezier(0.4, 0, 0.2, 1)),
+      color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+  }
 
-/* 收起后：按钮跟着滑到最左边，和正文左缘对齐 */
-.novel-sidebar-toggle.is-collapsed {
-  left: calc((100% - var(--vp-layout-max-width)) / 2 - 34px);
+  .Layout.novel-chapter .novel-sidebar-toggle:hover {
+    border-color: var(--vp-c-brand-2);
+    background-color: var(--vp-c-brand-soft);
+    color: var(--vp-c-brand-1);
+  }
+
+  /* 收起后：按钮跟着滑到最左边 */
+  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-toggle {
+    left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + 10px);
+  }
 }
 
 /* 窗口不够宽时按「贴左边」处理，避免按钮飞出可视区 */
 @media (max-width: 1440px) {
-  .novel-sidebar-toggle {
+  .Layout.novel-chapter .novel-sidebar-toggle {
     left: calc(var(--vp-sidebar-width) + 10px);
   }
 
-  .novel-sidebar-toggle.is-collapsed {
+  html.novel-sidebar-collapsed .Layout.novel-chapter .novel-sidebar-toggle {
     left: 10px;
   }
 }
@@ -908,6 +931,13 @@ html.theme-orange.dark {
   .novel-progress,
   .novel-navprogress {
     animation: none;
+    transition: none;
+  }
+
+  /* 目录折叠也不要滑动了，直接切换 */
+  .Layout.novel-chapter .VPSidebar[class],
+  html.novel-sidebar-animated .Layout.novel-chapter .VPContent.has-sidebar[class],
+  .Layout.novel-chapter .novel-sidebar-toggle {
     transition: none;
   }
 }
