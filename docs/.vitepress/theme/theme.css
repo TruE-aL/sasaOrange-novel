@@ -448,8 +448,23 @@ html.theme-orange.dark {
   z-index: -1;
 }
 
+/* 桌面端专属分组（章节目录 / 版心）上面的分隔线 */
+.reader-divider {
+  height: 1px;
+  margin: 14px 0 4px;
+  background-color: var(--vp-c-divider);
+}
+
+/* 控件下方的说明小字 */
+.reader-hint {
+  margin: 2px 0 8px;
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--vp-c-text-3);
+}
+
 .reader-panel {
-  width: 240px;
+  width: 250px;
   padding: 14px 16px 12px;
   border: 1px solid var(--vp-c-divider);
   border-radius: 12px;
@@ -683,6 +698,108 @@ html.theme-orange.dark {
    主题把它加在 Layout 根节点上，所以下面只影响章节页，
    不会影响书架首页与许可页。
    ============================================================ */
+
+/* ---- 章节目录折叠 + 版心宽度（桌面端）----
+   做法参考 vitepress-theme-teek 的 sidebar-trigger。
+
+   核心思路是把侧边栏的宽度过渡到 0（而不是 display:none），这样才有平滑动画；
+   正文的左侧留白同步减少，看起来是侧边栏「推」着正文往左走。
+   按钮本身 fixed 定位，left 跟着状态切换，收起后会自己滑到左边。
+
+   三条规则都带 [class] 补一档特异性，压过 VitePress 原生的 [data-v-xxx]：
+     .VPSidebar[data-v-xxx]         → (0,3,0)
+     .VPContent.has-sidebar[data-v] → (0,3,0)
+     .VPDoc.has-aside .content-container[data-v] → (0,4,0)
+   ---- */
+@media (min-width: 960px) {
+  /* 只有正文页才启用折叠：首页书架、许可页保持原样 */
+  html.novel-chapter .VPSidebar[class] {
+    /* 收起后挤掉左右内边距，宽度归零 */
+    transition: width var(--novel-sidebar-speed, 0.5s) ease-in-out,
+      padding-left var(--novel-sidebar-speed, 0.5s) ease-in-out,
+      padding-right var(--novel-sidebar-speed, 0.5s) ease-in-out,
+      opacity var(--novel-sidebar-speed, 0.5s);
+  }
+
+  /* 过渡 class 在组件挂载后才加：否则从首页进文章页会看到一次「收起」动画 */
+  html.novel-sidebar-animated .VPContent.has-sidebar[class] {
+    transition: padding-left var(--novel-sidebar-speed, 0.5s) ease-in-out;
+  }
+
+  /* ---- 收起态 ---- */
+  html.novel-sidebar-collapsed .VPSidebar[class] {
+    width: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+  }
+
+  /* 正文往左挪：留白从「居中留白 + 侧边栏宽」减到只剩居中留白 */
+  html.novel-sidebar-collapsed .VPContent.has-sidebar[class] {
+    padding-left: calc((100% - var(--vp-layout-max-width)) / 2) !important;
+  }
+
+  /* 目录收起后容器不用再为侧边栏预留，版心就能铺得更开 */
+  html.novel-sidebar-collapsed .VPDoc .container[class] {
+    max-width: none;
+  }
+
+  /* 顶栏左上角那个「展开目录」的小按钮收起后就没用了，一并隐藏 */
+  html.novel-sidebar-collapsed .VPLocalNav[class] {
+    display: none !important;
+  }
+
+  /* ---- 版心宽度（Aa 面板里的滑块）----
+     带 has-aside 时 VitePress 原生是 (0,4,0)，这里凑到 (0,4,1) 压过它 */
+  html .novel-chapter .VPDoc .content-container[class] {
+    max-width: var(--novel-measure, 720px);
+  }
+}
+
+/* ---- 折叠按钮 ---- */
+.novel-sidebar-toggle {
+  position: fixed;
+  /* 收起前：贴在侧边栏右缘 */
+  left: calc((100% - (var(--vp-layout-max-width) - 64px)) / 2 + var(--vp-sidebar-width) - 32px);
+  top: calc(var(--vp-nav-height) + 12px);
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background-color: var(--vp-c-bg);
+  color: var(--vp-c-text-2);
+  cursor: pointer;
+  transition: left var(--novel-sidebar-speed, 0.5s) ease-in-out,
+    color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.novel-sidebar-toggle:hover {
+  border-color: var(--vp-c-brand-2);
+  background-color: var(--vp-c-brand-soft);
+  color: var(--vp-c-brand-1);
+}
+
+/* 收起后：按钮跟着滑到最左边，和正文左缘对齐 */
+.novel-sidebar-toggle.is-collapsed {
+  left: calc((100% - var(--vp-layout-max-width)) / 2 - 34px);
+}
+
+/* 窗口不够宽时按「贴左边」处理，避免按钮飞出可视区 */
+@media (max-width: 1440px) {
+  .novel-sidebar-toggle {
+    left: calc(var(--vp-sidebar-width) + 10px);
+  }
+
+  .novel-sidebar-toggle.is-collapsed {
+    left: 10px;
+  }
+}
 
 .novel-chapter .vp-doc {
   font-size: var(--novel-reader-size, 20px);
