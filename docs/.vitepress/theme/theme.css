@@ -707,16 +707,31 @@ html.theme-orange.dark {
    不会影响书架首页与许可页。
    ============================================================ */
 
-/* ---- 顶栏背景要铺满整条 ----
-   VitePress 原生的顶栏底色画在 .VPNavBar::before 上，但它故意从
-   left: var(--vp-nav-col-offset)（= 侧边栏宽度）才开始，把左边那一截
-   让给侧边栏自己的底色。
+/* ---- 顶栏背景要铺满整条，而且必须是不透明的 ----
+   VitePress 把顶栏底色画在 .VPNavBar::before 上，但默认留了两处缺口：
 
-   侧边栏一旦收起（width: 0）就没人补这一截了，正文会从顶栏左边
-   「透」上来——所以这里把底色改成从 0 铺到右边，整条顶栏始终不透明。
-   侧边栏展开时它的底色本来就盖在上面，多铺一段也看不出来。 */
-.VPNavBar[class]::before {
+   ① 几何缺口：它从 left: var(--vp-nav-col-offset)（= 侧边栏宽度）才开始，
+      把左边那一截让给侧边栏自己的底色。侧边栏一收起（width: 0）就没人补，
+      正文会从顶栏左边「透」上来。
+   ② 颜色缺口：页面带 outline（有 ## 小标题）时，.VPNavBar 会多挂一个
+      .has-local-nav，VitePress 顺势把顶栏设成完全透明，指望下面那条
+      .VPLocalNav 顶上来当底色。但我们在收起态把 .VPLocalNav 藏了
+      （它那条「展开目录」按钮此时是多余的），于是整条顶栏都没底色、
+      正文直接透出来——《邓煜语录》这类有 ## 的章节就会中招，
+      而《持续蔓延》那种只有 # 的章节不受影响。
+
+   这里把两处一起补上：left 拉回 0，颜色强制用 --vp-nav-bg-color。
+   展开态时侧边栏底色本来就盖在上面，多铺一段看不出来。 */
+.VPNavBar[class]::before,
+.VPNavBar.has-local-nav[class]::before {
   left: 0;
+  background-color: var(--vp-nav-bg-color);
+}
+
+/* 首页顶部那套「透明顶栏」要留住：未滚动时仍走透明，滚动后才变实。
+   放在上面两条之后，靠更高的选择器权重压过去。 */
+.VPNavBar.home.top[class]::before {
+  background-color: var(--vp-nav-home-bg-color);
 }
 
 /* ---- 章节目录折叠 + 版心宽度（桌面端）----
