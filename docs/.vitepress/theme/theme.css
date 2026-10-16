@@ -1292,12 +1292,17 @@ body:has(.novel-navprogress) .novel-progress {
   background: var(--vp-c-brand-2);
 }
 
-/* 手机上排成整齐的两列（is-text-only 也要压回两列，所以这里带上它提高优先级） */
+/* 手机上：有封面的组排成整齐的两列 */
 @media (max-width: 640px) {
-  .vp-doc .shelf-grid,
-  .vp-doc .shelf-grid.is-text-only {
+  .vp-doc .shelf-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 22px 16px;
+  }
+
+  /* 没封面的组（is-text-only）：手机上改成一行一个，文字不用挤在窄列里 */
+  .vp-doc .shelf-grid.is-text-only {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 26px;
   }
 
   .vp-doc .shelf-desc {
