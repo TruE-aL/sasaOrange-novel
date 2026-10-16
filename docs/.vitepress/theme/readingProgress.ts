@@ -29,6 +29,60 @@ import {
  */
 export const READ_STORAGE_KEY = 'novel-read'
 
+/**
+ * 「最近打开过哪一章」的存储键，给书架卡片的「继续阅读」用。
+ *
+ * 为什么和 novel-read 分开：两者的语义天生不同——
+ *   · 目录小圆点要的是「读完过」→ 严格，读到 90% 才算（novel-read）
+ *   · 书卡继续阅读要的是「上次读到哪」→ 宽松，打开过就算数（novel-last）
+ *
+ * 早先图省事，让「继续阅读」也从 novel-read 反推，结果读者在某章读到一半
+ * 就离开时那一章不进已读集合，卡片只能指向上一个「读完过」的章——
+ * 表现就是「明明刚才在读第 4 章，回书架却还显示继续读第 1 章」。
+ * 拆成两份后各按各的语义走，互不干扰。
+ *
+ * 每部作品只留一条（值为章节路径），因为书卡只需要「任一本书最近在读的那一章」。
+ * 结构是 { [novelPrefix]: path }：
+ *   {"chixucunzai": "/novels/chixucunzai/04-第二章"}
+ * 用「作品路径前缀」当键，同一本书反复读只覆盖自己那条，不会越写越长。
+ */
+export const LAST_STORAGE_KEY = 'novel-last'
+
+/** 从章节路径取所属作品的路径前缀（/novels/<slug>/xx-章 → /novels/<slug>） */
+export function novelPrefixOf(path: string): string {
+  const match = path.match(/^(.*\/novels\/[^/]+)\//)
+  return match ? match[1] : ''
+}
+
+/** 记下「最近打开的这一章」，供书架卡片的「继续阅读」用 */
+export function markLastRead(path: string): void {
+  const prefix = novelPrefixOf(path)
+  if (!prefix) return
+  try {
+    const raw = JSON.parse(localStorage.getItem(LAST_STORAGE_KEY) || '{}')
+    const map = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+    map[prefix] = path
+    localStorage.setItem(LAST_STORAGE_KEY, JSON.stringify(map))
+  } catch {
+    // 隐私模式写不了就算了，继续阅读退化成「开始阅读」
+  }
+}
+
+/** 读出每本书「最近打开的那一章」（键是作品路径前缀） */
+export function lastReadMap(): Record<string, string> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(LAST_STORAGE_KEY) || '{}')
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {}
+    const out: Record<string, string> = {}
+    for (const [prefix, path] of Object.entries(raw)) {
+      if (typeof path === 'string' && path) out[prefix] = path
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
 /** 顶部进度条用的百分比 0–100。（纯函数，放在这里是因为它和阅读进度同属一件事） */
 export function progressPercent(scrollTop: number, scrollHeight: number, innerHeight: number) {
   const max = scrollHeight - innerHeight
@@ -87,6 +141,7 @@ export function readPaths(): string[] {
  * 一键清空所有阅读记录。
  *
  *   · novel-read            —— 目录里的已读小点擦掉
+ *   · novel-last            —— 书架卡片的「继续阅读」，一并还原成「开始阅读」
  *   · novel-progress        —— 老版本残留的「阅读位置」，顺手清干净
  *   · novel-read-migrated   —— 老数据迁移标记，一并清掉
  *
@@ -95,6 +150,7 @@ export function readPaths(): string[] {
 export function clearAllReadData(): void {
   try {
     localStorage.removeItem(READ_STORAGE_KEY)
+    localStorage.removeItem(LAST_STORAGE_KEY)
     localStorage.removeItem('novel-progress')
     localStorage.removeItem('novel-read-migrated')
   } catch {
@@ -287,6 +343,11 @@ export function installReadingProgress(router: VitePressRouter) {
       pendingY = 0
       frozen = false
       // 不再恢复滚动位置：每次进章节都从文章头开始
+
+      // 记下「最近打开过这一章」，给书架卡片的「继续阅读」用。
+      // 和已读（novel-read）分开：这个宽松，进来就算；已读严格，读到 90% 才算。
+      // 只在正文页记——切到书架/首页时 isReadingPage() 为假，不会把目录页记进去。
+      if (isReadingPage()) markLastRead(currentPath)
     })
   )
 }

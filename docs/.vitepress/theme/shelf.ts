@@ -1,15 +1,24 @@
 import { onNavigationEnd, normalizePath } from './navigation'
-import { readPaths as readChapterPaths, onChapterRead } from './readingProgress'
+import {
+  readPaths as readChapterPaths,
+  lastReadMap,
+  novelPrefixOf,
+  onChapterRead
+} from './readingProgress'
 
 /**
  * 书架上的「继续阅读」：
  * 首页的 <head> 里带了一份章节清单（window.__NOVEL_SHELF__，见 config.mts），
- * 这里读已读章节列表，找出每本书最近读到的那一章，
- * 于是书卡上的「开始阅读」就能变成「继续阅读 · 第5章」，点了直接跳过去。
+ * 这里读「最近打开过的章节」，于是书卡上的「开始阅读」就能变成
+ * 「继续阅读 · 第5章」，点了直接跳过去。
  *
  * 注意：只记「读到哪一章」，不记章内位置——跳过去也是从那一章开头读。
  *
- * 顺手把侧边栏目录里读过的章节标一下（一个小圆点）。
+ * 数据用 novel-last（打开过就算），不是 novel-read（读到底才算）：
+ * 若拿已读集合反推，读者在某章读到一半就走时那一章不在集合里，
+ * 卡片会指向上一个「读完过」的章——表现就是"明明刚在读第4章，却显示第1章"。
+ *
+ * 顺手把侧边栏目录里读过的章节标一下（一个小圆点，用的是 novel-read）。
  * 全是渐进增强：拿不到数据就什么都不做，原来的「开始阅读」照常可用。
  */
 
@@ -26,7 +35,7 @@ function shelfNovels(): ShelfNovel[] {
 }
 
 /** 首页书卡：换成「继续阅读 · 第N章」 */
-function applyContinueReading(readList: string[]) {
+function applyContinueReading(lastMap: Record<string, string>) {
   const novels = shelfNovels()
   if (novels.length === 0) return
 
@@ -37,15 +46,12 @@ function applyContinueReading(readList: string[]) {
     if (href) cards.set(normalizePath(href), card)
   }
 
-  const paths = readList.map((path) => normalizePath(path))
-
   for (const novel of novels) {
-    // 已读列表按时间递增，最后一个匹配到这本书的就是「最近读的那一章」
-    const recent = paths.filter((path) => novel.chapters.some((c) => normalizePath(c.href) === path))
-    const target = recent[recent.length - 1]
-    if (!target) continue
+    // novel-last 以「作品路径前缀」为键（/novels/<slug>），直接取这本书最近打开的那一章
+    const last = lastMap[novelPrefixOf(novel.start)]
+    if (!last) continue
 
-    const chapter = novel.chapters.find((c) => normalizePath(c.href) === target)
+    const chapter = novel.chapters.find((c) => normalizePath(c.href) === normalizePath(last))
     const card = cards.get(normalizePath(novel.start))
     if (!chapter || !card) continue
 
@@ -86,7 +92,7 @@ function refreshReadMarks() {
 /** 把「继续阅读 / 读过的章节」这些标记一次性刷出来 */
 function refresh() {
   try {
-    applyContinueReading(readChapterPaths())
+    applyContinueReading(lastReadMap())
   } catch (error) {
     console.error('[novel] 书架增强失败：', error)
   }
