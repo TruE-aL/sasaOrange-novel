@@ -6,6 +6,7 @@
  */
 import fs from 'node:fs'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 
 /* ---------------- 小工具 ---------------- */
 
@@ -77,6 +78,62 @@ const toArabicLabel = (label) => label.replace(/[零一二三四五六七八九�
 
 /** 拆出正文部分（去掉 frontmatter），label / title / 字数都从这一份文本里算 */
 const bodyOf = (raw) => raw.replace(/^---\r?\n[\s\S]*?\r?\n---/, '')
+
+/* ---------------- 章节「更新时间」 ----------------
+
+   RSS / sitemap 要一个「这章最近什么时候改过」。三种来源，按可靠性依次回退：
+
+     1. frontmatter 里的 `date:`  —— 最可靠，作者显式声明，跨环境不变
+     2. git 提交时间              —— 真实历史，但 CI 里必须 fetch-depth: 0，
+                                     浅克隆（默认 1 层）会拿到错的/拿不到
+     3. 文件系统 mtime            —— 兜底。注意：CI 检出时所有文件 mtime
+                                     都会变成检出那一刻，这一层在线上几乎必然失真
+
+   早先只用 mtime，结果线上 feed 的 pubDate 全挤在构建那一秒，
+   「改过哪一章就浮到最前」的排序退化成写入顺序。
+------------------------------------------------------------- */
+
+/** 解析 frontmatter 里的 date，支持 "2026-10-16" / "2026-10-16 12:30" / ISO，返回 ms（无效则 0） */
+function readDate(raw) {
+  const frontmatter = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/)
+  const date = frontmatter?.[1].match(/^date:\s*(.+)$/m)
+  if (!date) return 0
+  const value = stripQuotes(date[1]).trim()
+  if (!value) return 0
+  const ms = Date.parse(value)
+  return Number.isFinite(ms) ? ms : 0
+}
+
+/** 该文件最近一次提交时间（秒 → ms）。非 git 仓库 / 无历史 / 浅克隆取不到时返回 0 */
+function gitCommitMs(filePath) {
+  try {
+    // 一律用绝对路径：相对路径下 git 的 pathspec 可能匹配不到（返回空串），
+    // 也会受 cwd 影响，导致结果不稳。
+    const abs = path.resolve(filePath)
+    const out = execFileSync('git', ['log', '-1', '--format=%ct', '--', abs], {
+      cwd: path.dirname(abs),
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore']
+    }).trim()
+    const seconds = Number(out)
+    return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0
+  } catch {
+    return 0
+  }
+}
+
+/** 章节更新时间：date → git → mtime，逐级回退 */
+function resolveMtime(filePath, raw) {
+  const fromDate = readDate(raw)
+  if (fromDate) return fromDate
+  const fromGit = gitCommitMs(filePath)
+  if (fromGit) return fromGit
+  try {
+    return fs.statSync(filePath).mtimeMs
+  } catch {
+    return 0
+  }
+}
 
 function readLabel(file, raw) {
   const frontmatter = raw.match(/^---\r?\n([\s\S]*?)\r?\n---/)
@@ -205,13 +262,8 @@ export function loadNovels(contentDir, options = {}) {
       const text = name || label
       const listText = label ? `${label}　${text}` : text
       const chapterWords = countWords(raw)
-      // 文件的最后修改时间，RSS 的 pubDate 用它（不额外维护「更新日期」字段）
-      let mtime = 0
-      try {
-        mtime = fs.statSync(filePath).mtimeMs
-      } catch {
-        mtime = 0
-      }
+      // 章节更新时间：frontmatter date → git 提交时间 → 文件 mtime（见上方说明）
+      const mtime = resolveMtime(filePath, raw)
       chapters.push({
         file,
         label,

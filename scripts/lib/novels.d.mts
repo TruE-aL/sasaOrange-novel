@@ -6,6 +6,7 @@ export type Chapter = {
   listText: string
   pagerText: string
   words: number
+  /** 章节更新时间（ms）：frontmatter date → git 提交时间 → 文件 mtime */
   mtime: number
 }
 
