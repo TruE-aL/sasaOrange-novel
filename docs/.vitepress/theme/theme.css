@@ -1262,7 +1262,7 @@ body:has(.novel-navprogress) .novel-progress {
   font-weight: 600;
 }
 
-/* 有封面时：给封面描一圈主题色细环 */
+/* 有封面时：给封面描一圈主题色细环，一眼看出这本在读 */
 .vp-doc .shelf-card.is-continuing .shelf-cover {
   border-color: var(--vp-c-brand-2);
 }
@@ -1274,22 +1274,6 @@ body:has(.novel-navprogress) .novel-progress {
   border: 2px solid var(--vp-c-brand-2);
   border-radius: inherit;
   pointer-events: none;
-}
-
-/* 没有封面时：细环没处可描，改在书名左侧点一小段主题色竖条，一样能看出来 */
-.vp-doc .shelf-card.is-continuing .shelf-title {
-  position: relative;
-}
-
-.vp-doc .shelf-card.is-continuing .shelf-title::before {
-  content: '';
-  position: absolute;
-  top: 0.1em;
-  left: -0.7em;
-  width: 3px;
-  height: 1em;
-  border-radius: 2px;
-  background: var(--vp-c-brand-2);
 }
 
 /* 手机上：有封面的组排成整齐的两列 */
