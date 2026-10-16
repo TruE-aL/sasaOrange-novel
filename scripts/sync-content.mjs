@@ -184,8 +184,11 @@ function homePage(novels, site) {
     )
     // description 是可选的：site.json 里不写就没有这行小字
     if (group.description) lines.push(`<p class="shelf-section-desc">${escapeHtml(group.description)}</p>`, '')
-    // 卡片是原生 HTML：一行一个，中间不留空行，markdown 会整段原样输出
-    lines.push('<div class="shelf-grid">')
+    // 卡片是原生 HTML：一行一个，中间不留空行，markdown 会整段原样输出。
+    // 整组都没有封面时给网格加 is-text-only：CSS 据此放宽列宽（纯文字卡不需要那么窄的列）；
+    // 组里有任一本带封面就保持原网格，让整组卡片大小一致、对齐。
+    const textOnly = group.items.every((novel) => !novel.showCover)
+    lines.push(`<div class="shelf-grid${textOnly ? ' is-text-only' : ''}">`)
     for (const novel of group.items) {
       lines.push(...card(novel, site))
     }
