@@ -4,6 +4,7 @@ import ReaderSettings from './ReaderSettings'
 import ReadingProgress from './ReadingProgress'
 import SchemeSwitch from './SchemeSwitch'
 import SidebarToggle from './SidebarToggle'
+import MobileClearHistory from './MobileClearHistory'
 import ChapterEnd from './ChapterEnd'
 import Giscus from './Giscus'
 import { installNavProgress } from './NavProgress'
@@ -48,6 +49,8 @@ export default {
       'layout-top': () => h(ReadingProgress),
       // 章节目录折叠按钮（仅桌面端正文页，组件自己判断）
       'layout-bottom': () => h(SidebarToggle),
+      // 手机端：抽屉目录里的「重置阅读进度」（桌上那条悬浮工具条已有，不重复渲染）
+      'sidebar-nav-after': () => h(MobileClearHistory),
       // 正文页页尾：本章完的落款 + 评论区（其它页面这两个组件自己返回空）
       'doc-after': () => [h(ChapterEnd), h(Giscus)]
     })

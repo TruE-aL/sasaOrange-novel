@@ -1401,6 +1401,61 @@ body:has(.novel-navprogress) .novel-progress {
   opacity: 0.75;
 }
 
+/* ---- 手机端抽屉里的「重置阅读进度」----
+   桌面端这枚按钮在悬浮工具条上（见第 7 节的 .novel-sidebar-tools），
+   手机上抽屉是独立的一层，工具条够不着，所以这里放进抽屉里、
+   挂在目录列表末尾（VPSidebar 的 sidebar-nav-after 插槽）。
+
+   对齐：右端与章节选中块的右缘齐平。
+   抽屉内容区左右内边距各 32px（内容区 32~288）；章节项外层 .item 虽然有
+   `margin: 0 -0.5rem` 往外扩，但它挂在 level-1 分组里，而 level-1 自己
+   相对内容区还有一档左缩进，实测选中块右缘落在 280。所以按钮只要从内容区
+   右界往里收 8px 就对齐了（390/360/414/320 各宽度实测偏差 0）。
+
+   外观沿用桌面端那套：描边 + 圆角、目录主题色、按下有底色，
+   清空成功时整个按钮换成对勾并高亮一下（.is-cleared）。
+   ---- */
+.novel-mobile-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: fit-content;
+  /* 从内容区右界往里收 8px，右端才与选中块右侧（280）对齐 */
+  margin: 20px 8px 0 auto;
+  padding: 7px 12px;
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--vp-c-brand-1);
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.novel-mobile-clear .novel-mobile-clear-icon {
+  display: inline-flex;
+  align-items: center;
+  font-size: 15px;
+}
+
+.novel-mobile-clear:hover {
+  border-color: var(--vp-c-brand-2);
+  color: var(--vp-c-brand-2);
+}
+
+.novel-mobile-clear:active {
+  background-color: var(--vp-c-brand-soft);
+  border-color: var(--vp-c-brand-1);
+}
+
+.novel-mobile-clear.is-cleared {
+  border-color: var(--vp-c-brand-2);
+  color: var(--vp-c-brand-2);
+}
+
+
 /* 上一章 / 下一章：悬停时底色变浅 */
 .VPDocFooter .pager-link {
   transition: border-color 0.25s ease, background-color 0.25s ease;
