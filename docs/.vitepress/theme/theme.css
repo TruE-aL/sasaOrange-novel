@@ -1160,7 +1160,7 @@ body:has(.novel-navprogress) .novel-progress {
   transform: translateY(-4px);
 }
 
-/* 封面：固定 3:4，圆角 + 一层柔和投影 */
+/* 封面是可选件：只有 novel.json 写了 cover 才有这块。固定 3:4，圆角 + 柔和投影 */
 .vp-doc .shelf-cover {
   position: relative;
   display: block;
@@ -1189,34 +1189,6 @@ body:has(.novel-navprogress) .novel-progress {
 
 .vp-doc .shelf-card:hover .shelf-cover-img {
   transform: scale(1.04);
-}
-
-/* 没有封面的书：排一张「铅字封面」，用主题色渐变 + 书名，而不是留白 */
-.vp-doc .shelf-cover-blank {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 20px;
-  background-image: linear-gradient(150deg, var(--vp-c-brand-2), var(--vp-c-brand-3));
-  color: var(--vp-button-brand-text);
-  text-align: center;
-}
-
-.vp-doc .shelf-cover-name {
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: 0.14em;
-  line-height: 1.4;
-}
-
-.vp-doc .shelf-cover-author {
-  font-size: 0.78rem;
-  letter-spacing: 0.1em;
-  opacity: 0.82;
 }
 
 /* 封面右上角的状态标（连载中 / 已完结 / 语录集…） */
@@ -1280,11 +1252,12 @@ body:has(.novel-navprogress) .novel-progress {
   transform: translateX(4px);
 }
 
-/* 有阅读进度的书：换成「继续阅读」，封面加一圈主题色细环（客户端加 .is-continuing） */
+/* 有阅读进度的书：换成「继续阅读」（客户端加 .is-continuing） */
 .vp-doc .shelf-card.is-continuing .shelf-more {
   font-weight: 600;
 }
 
+/* 有封面时：给封面描一圈主题色细环 */
 .vp-doc .shelf-card.is-continuing .shelf-cover {
   border-color: var(--vp-c-brand-2);
 }
@@ -1298,15 +1271,27 @@ body:has(.novel-navprogress) .novel-progress {
   pointer-events: none;
 }
 
+/* 没有封面时：细环没处可描，改在书名左侧点一小段主题色竖条，一样能看出来 */
+.vp-doc .shelf-card.is-continuing .shelf-title {
+  position: relative;
+}
+
+.vp-doc .shelf-card.is-continuing .shelf-title::before {
+  content: '';
+  position: absolute;
+  top: 0.1em;
+  left: -0.7em;
+  width: 3px;
+  height: 1em;
+  border-radius: 2px;
+  background: var(--vp-c-brand-2);
+}
+
 /* 手机上排成整齐的两列 */
 @media (max-width: 640px) {
   .vp-doc .shelf-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 22px 16px;
-  }
-
-  .vp-doc .shelf-cover-name {
-    font-size: 1.15rem;
   }
 
   .vp-doc .shelf-desc {

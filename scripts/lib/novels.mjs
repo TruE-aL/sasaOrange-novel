@@ -226,7 +226,42 @@ export function loadNovels(contentDir, options = {}) {
       words += chapterWords
     }
 
-    const coverFile = meta.cover || 'cover.png'
+    /**
+     * 封面分两件事，别混为一谈：
+     *
+     *   coverImage —— 文件夹里那张封面**文件**（压缩后的路径），给分享卡（og:image）用
+     *   showCover  —— 卡片上**要不要显示**这张图
+     *
+     * 卡片显示是**可选**的，只有 novel.json 里显式写了 `cover` 才开：
+     *   · 不写 cover            → 卡片不显示封面（默认，也最干净）
+     *   · `"cover": true`       → 显示文件夹里的 cover.png
+     *   · `"cover": "x.png"`    → 显示指定的那张图
+     *
+     * 早先不写也会自动找 cover.png，于是"文件夹里恰好有张图"就直接上了卡片，
+     * 观感上很突兀。现在改成显式开启，作者想放封面才放。
+     *
+     * 但分享卡（og:image）是另一回事：只要文件夹里有图（默认 cover.png），
+     * 就照样压出来给分享卡用——那是社交平台上的缩略图，不影响书架观感。
+     * 两者共用同一张压缩产物 public/novels/<slug>/cover.jpg。
+     */
+    const coverSetting = meta.cover
+    const explicitCover = typeof coverSetting === 'string' && coverSetting ? coverSetting : ''
+    const showCover = coverSetting === true || Boolean(explicitCover)
+    /**
+     * 找封面文件：显式指定的优先，否则按 cover.png → cover.jpg 依次找（有就用）。
+     * 分享卡与卡片显示共用这一张，压缩产出统一叫 cover.jpg。
+     */
+    const findCoverFile = () => {
+      if (explicitCover) return fs.existsSync(path.join(sourceDir, explicitCover)) ? explicitCover : ''
+      for (const name of ['cover.png', 'cover.jpg']) {
+        if (fs.existsSync(path.join(sourceDir, name))) return name
+      }
+      return ''
+    }
+    const coverFile = findCoverFile()
+    const coverImage = coverFile ? `/novels/${slug}/cover.jpg` : ''
+    // 卡片是否真的显示：既要开启、又要找得到文件（压缩产物随之而来）
+    const showCardCover = showCover && Boolean(coverFile)
 
     novels.push({
       folder,
@@ -247,7 +282,10 @@ export function loadNovels(contentDir, options = {}) {
       licenseFile,
       licensePage: licenseFile ? `${base}/license` : '',
       coverFile,
-      cover: fs.existsSync(path.join(sourceDir, coverFile)) ? `/novels/${slug}/cover.jpg` : '',
+      // 分享卡（og:image）用：有封面文件就有地址，与卡片是否显示无关
+      cover: coverImage,
+      // 卡片是否显示封面：novel.json 里显式开启 + 找得到封面文件，才显示
+      showCover: showCardCover,
       // 全书最近一次改动时间（章节文件 mtime 的最大值），RSS / sitemap 用
       updated: chapters.reduce((latest, chapter) => Math.max(latest, chapter.mtime), 0),
       chapters,

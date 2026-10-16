@@ -25,7 +25,10 @@ export type Novel = {
   licenseFile: string
   licensePage: string
   coverFile: string
+  /** 分享卡（og:image）用的封面地址；有封面文件就有值，与卡片是否显示无关 */
   cover: string
+  /** 书架卡片是否显示封面（novel.json 显式开启 cover 才为 true） */
+  showCover: boolean
   updated: number
   chapters: Chapter[]
   stats: { chapters: number; words: number; extras: string[] }

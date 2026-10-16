@@ -67,7 +67,8 @@ for (const novel of novels) {
     log(`已移除旧的作品首页 docs/novels/${novel.folder}/index.md`)
   }
 
-  if (novel.cover) {
+  // 压缩封面文件（coverFile 有值就压）：产物给分享卡用，卡片显示与否另算
+  if (novel.coverFile) {
     const coverDir = path.join(publicNovelsDir, novel.slug)
     fs.mkdirSync(coverDir, { recursive: true })
     await compressCover(path.join(novel.sourceDir, novel.coverFile), path.join(coverDir, 'cover.jpg'))
@@ -194,7 +195,7 @@ function homePage(novels, site) {
   return lines.join('\n')
 }
 
-/** 一张书卡：封面 + 书名 + 信息 + 卖点 */
+/** 一张书卡：书名 + 信息 + 卖点（封面是可选件，novel.json 里写了 cover 才有） */
 function card(novel, site) {
   const description = novel.tagline || novel.description
   const title = escapeHtml(novel.title)
@@ -202,24 +203,17 @@ function card(novel, site) {
 
   // href 会被写进 HTML 属性，所以也走转义
   rows.push(`  <a class="shelf-card" href="${escapeHtml(novel.start)}">`)
-  rows.push('    <span class="shelf-cover">')
-  if (novel.cover) {
+  // 卡片是否显示封面：novel.json 里显式写了 cover 才显示（coverFile 是分享卡要用的文件，另算）
+  if (novel.showCover) {
+    rows.push('    <span class="shelf-cover">')
     rows.push(
       `      <img class="shelf-cover-img" src="${escapeHtml(novel.cover)}" alt="${title} 封面" loading="lazy" decoding="async">`
     )
-  } else {
-    // 没有封面的书：做一张「铅字封面」，用书名与作者排出来，而不是留白
-    rows.push('      <span class="shelf-cover-blank" aria-hidden="true">')
-    rows.push(`        <span class="shelf-cover-name">${title}</span>`)
-    if (novel.author) {
-      rows.push(`        <span class="shelf-cover-author">${escapeHtml(novel.author)}</span>`)
+    if (novel.status) {
+      rows.push(`      <span class="shelf-badge">${escapeHtml(novel.status)}</span>`)
     }
-    rows.push('      </span>')
+    rows.push('    </span>')
   }
-  if (novel.status) {
-    rows.push(`      <span class="shelf-badge">${escapeHtml(novel.status)}</span>`)
-  }
-  rows.push('    </span>')
   rows.push('    <span class="shelf-body">')
   rows.push(`      <span class="shelf-title">${title}</span>`)
   rows.push(`      <span class="shelf-meta">${escapeHtml(cardMeta(novel, site))}</span>`)
