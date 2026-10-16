@@ -21,6 +21,14 @@ export type VitePressRouter = Router
  *   - 路由路径：VitePress 2 在 cleanUrls 关闭时会补成 `.html`
  *   - 路由钩子传回来的 href：还会带上 `?query` 与 `#hash`
  * 章节身份只由路径决定，查询串与锚点不参与，所以一并去掉。
+ *
+ * ⚠️ 不变式：**比较章节路径时必须两边都过一遍本函数**。
+ * 因为「卡片 href」（手拼、无扩展名）与「路由路径」（VitePress 可能补 `.html`）
+ * 写法天生不同，只有都归一后才会相等。已遵守的地方：
+ *   - shelf.ts：cards.set(normalizePath(href)) / find(... normalizePath(c.href) === normalizePath(last))
+ *   - readingProgress.ts：currentPath = normalizePath(to)，存进 novel-last 的也是归一值
+ * 所以即使有人把 href 手改成带 `.html`，两边仍会收敛到同一个值，不会错位。
+ * 新增比较逻辑时照做即可 —— 别拿原始 path 直接 ===。
  */
 export function normalizePath(path: string): string {
   let value = path.split('#')[0].split('?')[0]

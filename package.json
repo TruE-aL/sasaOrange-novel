@@ -1,6 +1,7 @@
 {
   "name": "sasaorange-novel",
   "private": true,
+  "license": "MIT",
   "packageManager": "pnpm@9.15.9",
   "devDependencies": {
     "sharp": "^0.35.5",

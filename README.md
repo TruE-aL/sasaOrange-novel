@@ -554,3 +554,16 @@ pnpm docs:dev
 **只用 curl 检查时注意**：开发服务器对任意路径都返回那个只有
 `<div id="app"></div>` 的空壳（内容由浏览器端渲染），所以 curl 看不到正文是正常的；
 要确认产物有没有内容，用 `pnpm docs:build && pnpm docs:preview`。
+
+## 许可
+
+分两块，别混：
+
+| 范围 | 许可 | 说明 |
+| --- | --- | --- |
+| **代码** | **MIT** | `scripts/`、`docs/.vitepress/`、构建配置等，随便用。全文见 [LICENSE](LICENSE) |
+| **作品** | **CC BY-NC-SA 4.0** | `docs/novels/` 下的正文与封面。署名、**非商业**、相同方式共享 |
+
+也就是说：**代码可以自由取用，小说正文不可商用。** 各作品的许可写在它自己的
+`novel.json`（`license` / `licenseUrl`）里，作品页内也有对应的许可声明。
+

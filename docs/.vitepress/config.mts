@@ -116,6 +116,12 @@ export default defineConfig({
 
   rewrites,
 
+  // 去掉地址栏里的 .html：卡片 href 与 canonical 都是无扩展名的干净地址，
+  // 若不开这项，VitePress 的路由会把站内跳转又补回 .html，出现两种写法并存。
+  // 注意：这只影响客户端路由与 canonical，dist 里仍是 01-导语.html（CF Pages 会
+  // 把 /x.html 308 到 /x，所以直链也一致）。
+  cleanUrls: true,
+
   // _模板 这类下划线开头的文件夹不进站点
   srcExclude: ['novels/_*/**'],
 
