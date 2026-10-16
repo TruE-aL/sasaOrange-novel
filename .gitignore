@@ -1,6 +1,11 @@
 # 依赖
 node_modules/
 
+# 只用 pnpm：其它包管理器的锁文件与产物不要混进来
+package-lock.json
+yarn.lock
+.yarn/
+
 # pnpm 的内容寻址缓存。某些环境（比如容器里）pnpm 会把它建在项目根目录，
 # 是 168MB 的纯缓存，绝不能提交
 .pnpm-store/
